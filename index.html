@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark" data-lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emiliano D'Ambrosio — Desarrollador de Software</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A1628;
+    --bg-alt: #0F2138;
+    --card: #0D1D33;
+    --grid-line: rgba(79,216,196,0.07);
+    --border: #1E3A5F;
+    --border-strong: #2C4A73;
+    --text: #E8EEF5;
+    --text-muted: #8CA3C2;
+    --accent: #4FD8C4;
+    --accent-dim: rgba(79,216,196,0.14);
+    --accent-warm: #F2994A;
+    --shadow: rgba(0,0,0,0.35);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html[data-theme="light"] {
+    --bg: #F3F6FA;
+    --bg-alt: #E9EFF6;
+    --card: #FFFFFF;
+    --grid-line: rgba(15,63,92,0.06);
+    --border: #CBD9E8;
+    --border-strong: #9DB6CE;
+    --text: #10233B;
+    --text-muted: #4C6280;
+    --accent: #0F9D8F;
+    --accent-dim: rgba(15,157,143,0.12);
+    --accent-warm: #C86A24;
+    --shadow: rgba(16,35,59,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  body {
+    background:
+      repeating-linear-gradient(0deg, var(--grid-line) 0px, var(--grid-line) 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0px, var(--grid-line) 1px, transparent 1px, transparent 40px),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    transition: background-color .3s ease, color .3s ease;
+  }
+
+  a { color: inherit; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; max-width: 1080px; margin: 0 auto;
+  }
+  .logo {
+    font-family: var(--font-mono); font-size: 14px; letter-spacing: .04em;
+    color: var(--accent); display: flex; align-items: center; gap: 8px;
+  }
+  .logo::before { content: "◲"; font-size: 16px; }
+  .nav-controls { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    font-family: var(--font-mono); font-size: 12px;
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-muted); border-radius: 4px; padding: 7px 11px;
+    cursor: pointer; transition: border-color .2s, color .2s, background .2s;
+    letter-spacing: .03em;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- HERO ---------- */
+  header.hero {
+    padding: 96px 0 72px;
+    position: relative;
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    letter-spacing: .12em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 22px;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--accent); }
+  h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.02;
+    letter-spacing: -.01em; margin-bottom: 20px;
+  }
+  .hero-sub {
+    font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--text-muted);
+    max-width: 560px; margin-bottom: 8px;
+  }
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+  .hero-ctas { display: flex; gap: 14px; margin-top: 40px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: .03em;
+    padding: 13px 22px; border-radius: 4px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    border: 1px solid transparent;
+  }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: #06201C; font-weight: 600; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -8px var(--accent); }
+  .btn-ghost { border-color: var(--border-strong); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* dimension-line divider */
+  .divider {
+    height: 1px; margin: 0 0 64px;
+    background-image: repeating-linear-gradient(90deg, var(--border-strong) 0 6px, transparent 6px 14px);
+  }
+
+  /* ---------- SECTION HEADS ---------- */
+  .section-head { margin-bottom: 44px; }
+  .section-head .eyebrow { margin-bottom: 12px; }
+  .section-head h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  }
+  .section-head p { color: var(--text-muted); margin-top: 10px; max-width: 620px; }
+
+  /* ---------- PROJECTS ---------- */
+  #proyectos { padding-bottom: 100px; }
+  .project-list { display: flex; flex-direction: column; gap: 28px; }
+
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 30px 32px 28px;
+    transition: border-color .25s ease, box-shadow .25s ease;
+  }
+  .card:hover { border-color: var(--border-strong); box-shadow: 0 18px 40px -24px var(--shadow); }
+
+  /* corner brackets — the signature motif */
+  .card::before, .card::after {
+    content: ""; position: absolute; width: 14px; height: 14px;
+    border-color: var(--accent); pointer-events: none; opacity: .8;
+  }
+  .card::before { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+  .card::after { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+  .card-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 20px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .card-num {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+    letter-spacing: .06em; white-space: nowrap;
+  }
+  .card-title {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(1.25rem, 2.4vw, 1.55rem); margin: 6px 0 10px;
+  }
+  .card-tagline { color: var(--text-muted); font-size: .95rem; max-width: 640px; margin-bottom: 18px; }
+
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .chip {
+    font-family: var(--font-mono); font-size: 11.5px;
+    padding: 5px 10px; border-radius: 3px;
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid transparent;
+  }
+  .chip.muted { background: transparent; border-color: var(--border-strong); color: var(--text-muted); }
+
+  .card-links { display: flex; gap: 18px; margin-bottom: 18px; flex-wrap: wrap; }
+  .card-links a {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--text);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--border-strong); padding-bottom: 2px;
+    transition: color .2s, border-color .2s;
+  }
+  .card-links a:hover { color: var(--accent); border-color: var(--accent); }
+  .card-links .disabled { color: var(--text-muted); border-color: transparent; cursor: default; }
+
+  details.tech-details { border-top: 1px solid var(--border); padding-top: 14px; }
+  details.tech-details summary {
+    cursor: pointer; list-style: none; font-family: var(--font-mono);
+    font-size: 12.5px; color: var(--text-muted); letter-spacing: .03em;
+    display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  details.tech-details summary::-webkit-details-marker { display: none; }
+  details.tech-details summary::before {
+    content: "▸"; color: var(--accent); transition: transform .2s ease; display: inline-block;
+  }
+  details.tech-details[open] summary::before { transform: rotate(90deg); }
+  details.tech-details summary:hover { color: var(--accent); }
+  details.tech-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .tech-body { padding-top: 18px; display: grid; gap: 20px; }
+  .tech-block h4 {
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--accent-warm); margin-bottom: 10px;
+  }
+  .tech-block p { font-size: .93rem; color: var(--text-muted); }
+  .concepts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .concepts span {
+    font-size: 11.5px; font-family: var(--font-mono);
+    padding: 4px 9px; border-radius: 3px; border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 44px 0 60px;
+  }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-name { font-family: var(--font-display); font-weight: 600; }
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted);
+    text-decoration: none; transition: color .2s;
+  }
+  .footer-links a:hover { color: var(--accent); }
+  .footer-note { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 18px; }
+
+  @media (max-width: 640px) {
+    .nav-inner { padding: 14px 20px; }
+    header.hero { padding: 64px 0 48px; }
+    .card { padding: 24px 20px 22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <span class="logo">emiliano.dambrosio.dev</span>
+    <div class="nav-controls">
+      <button class="icon-btn" id="themeToggle" aria-label="Cambiar tema" data-es="MODO CLARO" data-en="LIGHT MODE">MODO CLARO</button>
+      <button class="icon-btn" id="langToggle" aria-label="Switch language">EN</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow" data-es="Sitio web en construcción" data-en="Website under development">Sitio web en construcción</p>
+    <h1>Emiliano D'Ambrosio</h1>
+    <p class="hero-sub">
+      <strong data-es="Desarrollador de Software." data-en="Software Developer.">Desarrollador de Software.</strong>
+      <span data-es="Estudiante de Licenciatura en Sistemas en la Universidad Nacional de Lanús."
+            data-en="Systems Engineering student at Universidad Nacional de Lanús.">
+        Estudiante de Licenciatura en Sistemas en la Universidad Nacional de Lanús.
+      </span>
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="./CV-emiliano.pdf" data-es="Ver Curriculum Vitae ↓" data-en="View Résumé ↓">Ver Curriculum Vitae ↓</a>
+      <a class="btn btn-ghost" href="#proyectos" data-es="Ver Proyectos" data-en="View Projects">Ver Proyectos</a>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <section id="proyectos">
+    <div class="section-head">
+      <h2 data-es="Proyectos:" data-en="Projects:">Proyectos:</h2>
+    </div>
+
+    <div class="project-list">
+      <!-- 01 -->
+      <article class="card">
+        <h3 class="card-title" data-es="Sitio web Total Mecánica" data-en="Website Total Mecánica">Sitio web Total Mecánica</h3>
+        <p class="card-tagline" data-es="Trabajo freelance. Landing page institucional para un taller mecánico, en producción, orientada a conversión y captación de clientes vía Google Ads."
+           data-en="Freelance work. Institutional landing page for an auto repair shop, live in production, built for conversion and lead generation via Google Ads.">
+          Trabajo freelance. Landing page institucional para un taller mecánico, en producción, orientada a conversión y captación de clientes vía Google Ads.
+        </p>
+        <div class="stack">
+          <span class="chip">React</span><span class="chip">Next.js</span><span class="chip">TypeScript</span>
+          <span class="chip">Tailwind CSS</span><span class="chip">Vite</span><span class="chip muted">Google Tag Manager</span><span class="chip muted">Google Analytics</span><span class="chip muted">cPanel</span>
+        </div>
+        <div class="card-links">
+          <a href="https://www.totalmecanica.com.ar" target="_blank" rel="noopener">↗ <span data-es="Ver sitio" data-en="View site">Ver sitio</span></a>
+          <a href="https://github.com/Emilianodamb/landingtm-v3" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="Surgió ante la necesidad de contar con presencia digital profesional y una plataforma optimizada para campañas de Google Ads, con el objetivo de aumentar la captación de clientes y mejorar el posicionamiento en buscadores. Gestioné además la contratación de dominio y hosting para la puesta en producción."
+                 data-en="Built to give the shop a professional digital presence and a platform optimized for Google Ads campaigns, aiming to increase client acquisition and improve search rankings. I also handled domain and hosting setup for production.">
+                Surgió ante la necesidad de contar con presencia digital profesional y una plataforma optimizada para campañas de Google Ads, con el objetivo de aumentar la captación de clientes y mejorar el posicionamiento en buscadores. Gestioné además la contratación de dominio y hosting para la puesta en producción.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Empecé con React + Vite, pero detecté limitaciones de SEO en el despliegue y migré a Next.js. Luego resolví la incompatibilidad entre Next.js y el hosting contratado mediante exportación estática, manteniendo los beneficios de SEO sin necesitar un servidor Node.js dedicado."
+                 data-en="Started with React + Vite, but hit SEO limitations at deployment and migrated to Next.js. Then solved the incompatibility between Next.js and the contracted hosting through static export, keeping the SEO benefits without a dedicated Node.js server.">
+                Empecé con React + Vite, pero detecté limitaciones de SEO en el despliegue y migré a Next.js. Luego resolví la incompatibilidad entre Next.js y el hosting contratado mediante exportación estática, manteniendo los beneficios de SEO sin necesitar un servidor Node.js dedicado.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>Mobile First</span><span>SEO técnico/On-Page</span><span>Landing pages</span><span>Embudos de venta</span>
+                <span>Diseño responsivo</span><span>UX</span><span>Copywriting</span><span>HTML semántico</span>
+                <span>Arquitectura de componentes</span><span>Analítica web</span><span>Hosting &amp; dominios</span><span>Despliegue web</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 02 -->
+      <article class="card">
+        <h3 class="card-title" data-es="Base de Datos Interactiva Total Mecánica" data-en="Interactive Database Total Mecánica">Base de Datos Interactiva Total Mecánica</h3>
+        <p class="card-tagline" data-es="Digitalización de la gestión operativa del taller: migración de registros manuales a una base de datos NoSQL en la nube con interfaz de administración."
+           data-en="Digitized the shop's operations management: migrated manual records into a cloud NoSQL database with an admin interface.">
+          Digitalización de la gestión operativa del taller: migración de registros manuales a una base de datos NoSQL en la nube con interfaz de administración.
+        </p>
+        <div class="stack">
+          <span class="chip">React</span><span class="chip">Python</span><span class="chip">Firebase Firestore</span>
+          <span class="chip">Firebase Auth</span><span class="chip muted">Vercel</span><span class="chip muted">XML → JSON</span>
+        </div>
+        <div class="card-links">
+          <a href="https://total-mecanica.vercel.app/" target="_blank" rel="noopener">↗ <span data-es="Ver app" data-en="View app">Ver app</span></a>
+          <a href="https://www.linkedin.com/feed/update/urn:li:activity:7275549131102736384/" target="_blank" rel="noopener">↗ <span data-es="Video demostrativo" data-en="Demo video">Video demostrativo</span></a>
+          <span class="disabled" data-es="Repositorio: privado" data-en="Repository: private">Repositorio: privado</span>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="La información histórica de vehículos y trabajos se almacenaba en registros manuales y herramientas no pensadas para ese fin, limitando búsqueda, análisis y escalabilidad. Extraje la información desde archivos XML, modelé las entidades del dominio y migré los datos a JSON antes de cargarlos en Firestore."
+                 data-en="Vehicle and job history was stored in manual records and tools not designed for the purpose, limiting search, analysis and scalability. I extracted the data from XML files, modeled the domain entities and migrated the data to JSON before loading it into Firestore.">
+                La información histórica de vehículos y trabajos se almacenaba en registros manuales y herramientas no pensadas para ese fin, limitando búsqueda, análisis y escalabilidad. Extraje la información desde archivos XML, modelé las entidades del dominio y migré los datos a JSON antes de cargarlos en Firestore.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Recuperar y transformar información almacenada en una herramienta no diseñada como sistema de gestión de talleres. Desarrollé un script en Python para procesar los XML exportados y diseñé un modelo de datos flexible que permite un número ilimitado de trabajos por vehículo y consultas eficientes."
+                 data-en="Recovering and transforming information stored in a tool not designed as a shop management system. I built a Python script to process the exported XML files and designed a flexible data model supporting unlimited jobs per vehicle and efficient queries.">
+                Recuperar y transformar información almacenada en una herramienta no diseñada como sistema de gestión de talleres. Desarrollé un script en Python para procesar los XML exportados y diseñé un modelo de datos flexible que permite un número ilimitado de trabajos por vehículo y consultas eficientes.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>Modelado de datos</span><span>Migración de datos</span><span>NoSQL</span><span>Normalización</span>
+                <span>Autenticación/autorización</span><span>Interfaces administrativas</span><span>Gestión de estado</span>
+                <span>Despliegue en la nube</span><span>Reglas de seguridad</span><span>Procesamiento de XML</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 03 -->
+      <article class="card">
+        <h3 class="card-title">The Mobile Shop</h3>
+        <p class="card-tagline" data-es="Proyecto final del curso de React de Coderhouse. E-commerce de dispositivos móviles: SPA completa con carrito, checkout y Firestore."
+           data-en="Final project for Coderhouse's React course. Mobile device e-commerce: full SPA with cart, checkout and Firestore.">
+          Proyecto final del curso de React de Coderhouse. E-commerce de dispositivos móviles: SPA completa con carrito, checkout y Firestore.
+        </p>
+        <div class="stack">
+          <span class="chip">React</span><span class="chip">React Router</span><span class="chip">Firebase Firestore</span>
+          <span class="chip">Context API</span><span class="chip muted">Vite</span>
+        </div>
+        <div class="card-links">
+          <a href="https://proyecto-coderhouse-react.vercel.app/" target="_blank" rel="noopener">↗ <span data-es="Ver app" data-en="View app">Ver app</span></a>
+          <a href="https://github.com/Emilianodamb/proyecto-coderhouse-react" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="SPA de comercio electrónico con catálogo dinámico, filtros, carrito de compras y checkout integrado con Firestore. Incluye modo oscuro gestionado con Context API."
+                 data-en="E-commerce SPA with a dynamic catalog, filters, shopping cart and checkout integrated with Firestore. Includes a dark mode managed with Context API.">
+                SPA de comercio electrónico con catálogo dinámico, filtros, carrito de compras y checkout integrado con Firestore. Incluye modo oscuro gestionado con Context API.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Implementar una arquitectura escalable basada en componentes reutilizables y gestionar el estado compartido sin librerías externas, centralizando carrito y preferencias visuales mediante Context API."
+                 data-en="Implementing a scalable, component-based architecture and managing shared state without external libraries, centralizing cart and UI preferences through Context API.">
+                Implementar una arquitectura escalable basada en componentes reutilizables y gestionar el estado compartido sin librerías externas, centralizando carrito y preferencias visuales mediante Context API.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>SPA</span><span>Componentes</span><span>Hooks</span><span>Estado local/global</span>
+                <span>Routing</span><span>Formularios controlados</span><span>Firestore</span><span>Autenticación</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 04 -->
+      <article class="card">
+        <h3 class="card-title" data-es="Ferretería Online" data-en="E-commerce "Ferretería Online">Ferretería Online</h3>
+        <p class="card-tagline" data-es="Proyecto final del curso de JavaScript de Coderhouse. Tienda online en JS vanilla con carrito de compras y persistencia en el navegador."
+           data-en="Final project for Coderhouse's JavaScript course. Online store in vanilla JS with a shopping cart and browser persistence.">
+          Proyecto final del curso de JavaScript de Coderhouse. Tienda online en JS vanilla con carrito de compras y persistencia en el navegador.
+        </p>
+        <div class="stack">
+          <span class="chip">JavaScript ES6+</span><span class="chip">LocalStorage</span><span class="chip">JSON</span><span class="chip muted">SweetAlert</span>
+        </div>
+        <div class="card-links">
+          <a href="https://java-script-theta.vercel.app/" target="_blank" rel="noopener">↗ <span data-es="Ver app" data-en="View app">Ver app</span></a>
+          <a href="https://github.com/Emilianodamb/ferreteria-online" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="Tienda online para una ferretería ficticia: navegación de productos, carrito, detalle de compra y gestión dinámica sin recargar la página, con notificaciones visuales y persistencia local."
+                 data-en="Online store for a fictional hardware shop: product browsing, cart, purchase detail and dynamic management without page reloads, with visual notifications and local persistence.">
+                Tienda online para una ferretería ficticia: navegación de productos, carrito, detalle de compra y gestión dinámica sin recargar la página, con notificaciones visuales y persistencia local.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Construir una aplicación interactiva en JavaScript Vanilla gestionando manualmente el estado y la sincronización entre datos e interfaz, persistiendo información mediante LocalStorage."
+                 data-en="Building an interactive vanilla JavaScript app, manually managing state and data/UI sync, persisting information via LocalStorage.">
+                Construir una aplicación interactiva en JavaScript Vanilla gestionando manualmente el estado y la sincronización entre datos e interfaz, persistiendo información mediante LocalStorage.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>Manipulación del DOM</span><span>Eventos</span><span>LocalStorage</span><span>Funciones de orden superior</span>
+                <span>Fetch API</span><span>Asincronía</span><span>Promesas</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 05 -->
+      <article class="card">
+        <h3 class="card-title">Andes Xtreme</h3>
+        <p class="card-tagline" data-es="Proyecto final del curso de Diseño Web de Coderhouse. Primer sitio web: institucional estático para una empresa ficticia de turismo aventura."
+           data-en="Final project for Coderhouse's Web Design course. First web project: static institutional site for a fictional adventure tourism company.">
+          Proyecto final del curso de Diseño Web de Coderhouse. Primer sitio web: institucional estático para una empresa ficticia de turismo aventura.
+        </p>
+        <div class="stack">
+          <span class="chip">HTML5</span><span class="chip">CSS3</span><span class="chip">Bootstrap</span><span class="chip">SASS</span>
+        </div>
+        <div class="card-links">
+          <a href="https://andesxtreme.netlify.app/" target="_blank" rel="noopener">↗ <span data-es="Ver sitio" data-en="View site">Ver sitio</span></a>
+          <a href="https://github.com/Emilianodamb/andesXtreme" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="Mi primer acercamiento al desarrollo web: estructura de páginas, estilos, maquetado responsivo y organización del código frontend, con secciones informativas, formularios y contenido multimedia."
+                 data-en="My first hands-on web development project: page structure, styling, responsive layout and frontend code organization, with information sections, forms and multimedia content.">
+                Mi primer acercamiento al desarrollo web: estructura de páginas, estilos, maquetado responsivo y organización del código frontend, con secciones informativas, formularios y contenido multimedia.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Comprender cómo estructurar una aplicación con HTML semántico y hojas de estilo escalables, adaptando la interfaz a distintos tamaños de pantalla con Bootstrap y organizando estilos con SASS y BEM."
+                 data-en="Learning to structure an app with semantic HTML and scalable stylesheets, adapting the UI across screen sizes with Bootstrap, and organizing styles with SASS and BEM.">
+                Comprender cómo estructurar una aplicación con HTML semántico y hojas de estilo escalables, adaptando la interfaz a distintos tamaños de pantalla con Bootstrap y organizando estilos con SASS y BEM.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>HTML semántico</span><span>Flexbox</span><span>CSS Grid</span><span>Responsive</span>
+                <span>BEM</span><span>SASS</span><span>Formularios</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 06 -->
+      <article class="card">
+        <h3 class="card-title" data-es="Juego de Preguntas y Respuestas de Opción Múltiple" data-en="Multiple-Choice Trivia Game">Juego de Preguntas y Respuestas de Opción Múltiple</h3>
+        <p class="card-tagline" data-es="Trabajo práctico integrador de Introducción a la Programación (Lic. en Sistemas). Trivia multijugador por consola en lenguaje C, con persistencia en archivos."
+           data-en="Integrative assignment for Introduction to Programming (Systems Engineering). Console-based multiplayer trivia game in C, with file persistence.">
+          Trabajo práctico integrador de Introducción a la Programación (Lic. en Sistemas). Trivia multijugador por consola en lenguaje C, con persistencia en archivos.
+        </p>
+        <div class="stack">
+          <span class="chip">C</span><span class="chip muted">CodeBlocks</span><span class="chip muted">Estructuras de datos</span>
+        </div>
+        <div class="card-links">
+          <a href="https://www.linkedin.com/feed/update/urn:li:activity:7476311083729874944/" target="_blank" rel="noopener">↗ <span data-es="Video demostración" data-en="Demo video">Video demostración</span></a>
+          <a href="https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="Trivia para 2 a 4 jugadores con preguntas de distinta dificultad, ranking histórico y desempate mediante preguntas matemáticas cuando hay empate de puntaje."
+                 data-en="Trivia for 2 to 4 players with questions of varying difficulty, a historical ranking and tie-breaks via math questions when scores are tied.">
+                Trivia para 2 a 4 jugadores con preguntas de distinta dificultad, ranking histórico y desempate mediante preguntas matemáticas cuando hay empate de puntaje.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Integrar múltiples conceptos de programación en una sola aplicación: arquitectura modular con TDA, listas enlazadas, persistencia en archivos y manejo manual de memoria con punteros."
+                 data-en="Integrating multiple programming concepts into one application: modular architecture with ADTs, linked lists, file persistence and manual memory management with pointers.">
+                Integrar múltiples conceptos de programación en una sola aplicación: arquitectura modular con TDA, listas enlazadas, persistencia en archivos y manejo manual de memoria con punteros.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>TDA</span><span>Listas enlazadas</span><span>Punteros / malloc</span><span>Archivos</span>
+                <span>Recursividad</span><span>Modularización</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <!-- 07 -->
+      <article class="card">
+        <h3 class="card-title" data-es="Detonación de una Bomba en Assembler" data-en="Bomb Detonation Simulation in Assembly">Detonación de una Bomba en Assembler</h3>
+        <p class="card-tagline" data-es="Trabajo práctico final de Arquitectura de Computadoras (Lic. en Sistemas). Sistema embebido en PIC16F84A simulado en Proteus."
+           data-en="Final assignment for Computer Architecture (Systems Engineering). Embedded system on a PIC16F84A, simulated in Proteus.">
+          Trabajo práctico final de Arquitectura de Computadoras (Lic. en Sistemas). Sistema embebido en PIC16F84A simulado en Proteus.
+        </p>
+        <div class="stack">
+          <span class="chip">Assembler</span><span class="chip">PIC16F84A</span><span class="chip muted">Proteus</span><span class="chip muted">MPLAB</span>
+        </div>
+        <div class="card-links">
+          <a href="https://www.linkedin.com/feed/update/urn:li:activity:7476323955063132160/" target="_blank" rel="noopener">↗ <span data-es="Video demostración" data-en="Demo video">Video demostración</span></a>
+          <a href="https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS" target="_blank" rel="noopener">↗ <span data-es="Repositorio" data-en="Repository">Repositorio</span></a>
+        </div>
+        <details class="tech-details">
+          <summary data-es="Detalle técnico" data-en="Technical detail">Detalle técnico</summary>
+          <div class="tech-body">
+            <div class="tech-block">
+              <h4 data-es="Contexto" data-en="Context">Contexto</h4>
+              <p data-es="Programa en Assembler que espera un botón de inicio, ejecuta una cuenta regresiva de 9 a 0 en un display de 7 segmentos con señales de buzzer, y detiene el sistema con la instrucción SLEEP al finalizar."
+                 data-en="Assembler program that waits for a start button, runs a countdown from 9 to 0 on a 7-segment display with buzzer signals, and halts the system with the SLEEP instruction on completion.">
+                Programa en Assembler que espera un botón de inicio, ejecuta una cuenta regresiva de 9 a 0 en un display de 7 segmentos con señales de buzzer, y detiene el sistema con la instrucción SLEEP al finalizar.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Desafío técnico" data-en="Technical challenge">Desafío técnico</h4>
+              <p data-es="Desarrollar toda la lógica exclusivamente en Assembler, gestionando registros y puertos de forma manual, implementando temporizaciones por ciclos de instrucción y antirrebote por software."
+                 data-en="Building all the logic exclusively in Assembler, manually managing registers and ports, implementing instruction-cycle timing and software debouncing.">
+                Desarrollar toda la lógica exclusivamente en Assembler, gestionando registros y puertos de forma manual, implementando temporizaciones por ciclos de instrucción y antirrebote por software.
+              </p>
+            </div>
+            <div class="tech-block">
+              <h4 data-es="Conceptos aplicados" data-en="Concepts applied">Conceptos aplicados</h4>
+              <div class="concepts">
+                <span>Arquitectura Harvard</span><span>Registros / puertos I-O</span><span>Interrupciones</span>
+                <span>Debouncing</span><span>Simulación de circuitos</span>
+              </div>
+            </div>
+          </div>
+        </details>
+      </article>
+
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span class="footer-name">Emiliano D'Ambrosio</span>
+    <div class="footer-links">
+      <a href="https://github.com/Emilianodamb" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://instagram.com/emidesistemas" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://wa.me/5491124012037" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://www.linkedin.com/in/emiliano-dambrosio/" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:emiliano.dambrosio.dev@gmail.com" target="_blank" rel="noopener">Email</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="footer-note" data-es="© <span id='year'></span> — construido con Claude Code." data-en="© <span id='year'></span> — built with Claude Code.">© <span id="year"></span> — construido con Claude Code.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ---- Theme toggle (in-memory only, no storage) ----
+  const themeBtn = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  themeBtn.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    applyLangToNode(themeBtn); // refresh label text for current lang
+  });
+
+  // ---- Language toggle ----
+  const langBtn = document.getElementById('langToggle');
+  const i18nNodes = document.querySelectorAll('[data-es][data-en]');
+
+  function applyLangToNode(node) {
+    const lang = root.dataset.lang;
+    const val = node.dataset[lang];
+    if (val !== undefined) {
+      // allow simple inline markup only for the footer note (year span)
+      if (node.querySelector('#year') || val.includes('<span')) {
+        node.innerHTML = val;
+        const y = node.querySelector('#year');
+        if (y) y.textContent = new Date().getFullYear();
+      } else {
+        node.textContent = val;
+      }
+    }
+  }
+
+  function setLang(lang) {
+    root.dataset.lang = lang;
+    root.lang = lang;
+    i18nNodes.forEach(applyLangToNode);
+    langBtn.textContent = lang === 'es' ? 'EN' : 'ES';
+    langBtn.setAttribute('aria-label', lang === 'es' ? 'Switch to English' : 'Cambiar a español');
+  }
+
+  langBtn.addEventListener('click', () => {
+    setLang(root.dataset.lang === 'es' ? 'en' : 'es');
+  });
+
+  setLang('es');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1 @@
+Este repositorio tiene una versión preliminar de mi portfolio profesional. Contiene información sobre mi experiencia laboral, proyectos y habilidades como desarrollador de software.
