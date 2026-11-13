@@ -1,6 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import totalMecanica from '../assets/projects/totalmecanica.jpg';
-import baseInteractiva from '../assets/projects/baseinteractiva.jpg';
+import baseInteractiva from '../assets/projects/baseinteractiva-anonimizada.jpg';
 import mobileShop from '../assets/projects/mobileshop.jpg';
 import ferreteria from '../assets/projects/ferreteriaonline.jpg';
 import andesXtreme from '../assets/projects/andesxtreme.jpg';
@@ -24,7 +24,8 @@ export interface Project {
   title: string;
   category: string;
   group: 'featured' | 'training';
-  action: 'site' | 'application' | 'demo';
+  action: 'site' | 'application' | 'demo' | 'video';
+  showUrl?: boolean;
   technologies: string[];
   description: string;
   contribution?: string;
@@ -32,41 +33,40 @@ export interface Project {
   status?: string;
   url: string;
   image: ImageMetadata;
-  imageOrientation?: 'portrait';
 }
 
 export const projects: Project[] = [
   {
     title: 'Historial vehicular de Total Mecánica',
     image: baseInteractiva,
-    imageOrientation: 'portrait',
-    category: 'Aplicación interna en uso',
+    category: 'En producción',
     group: 'featured',
-    action: 'application',
+    action: 'video',
     description: 'Desarrollé una aplicación para consultar y actualizar el historial de vehículos del taller. Migré más de 3.000 registros del sistema anterior y publiqué la aplicación para que el equipo pudiera acceder desde distintos dispositivos.',
     contribution: 'Transformé los registros históricos de XML a JSON para incorporarlos a Firestore. Implementé la búsqueda de historiales en React y el acceso mediante Firebase Authentication.',
-    technologies: ['React', 'Tailwind CSS', 'Python', 'Firebase'],
-    status: 'Acceso restringido',
-    url: 'https://total-mecanica.vercel.app/',
+    technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Tailwind CSS', 'Python', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
+    url: 'https://lnkd.in/p/d6vi4X_H',
   },
   {
     title: 'Aureq',
     image: aureq,
-    category: 'Sitio comercial',
+    category: 'En producción',
     group: 'featured',
     action: 'site',
     description: 'Diseñé y publiqué el sitio de mi emprendimiento de desarrollo web para presentar sus servicios y facilitar el contacto con comercios y profesionales.',
     contribution: 'Organicé el contenido, desarrollé la interfaz adaptable con Astro e incorporé animaciones con GSAP.',
-    technologies: ['Astro', 'GSAP'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Astro', 'GSAP', 'Git', 'GitHub', 'Google Cloud', 'Visual Studio Code'],
+    showUrl: true,
     url: 'https://aureq.com.ar',
   },
   {
     title: 'Sitio web de Total Mecánica',
     image: totalMecanica,
-    category: 'Sitio institucional',
+    category: 'En producción',
     group: 'featured',
     action: 'site',
-    technologies: ['Next.js', 'React', 'TypeScript', 'Google Analytics'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'TypeScript', 'React', 'Vite', 'Next.js', 'Google Analytics', 'Git', 'GitHub', 'GitHub Copilot', 'Tailwind CSS', 'Visual Studio Code'],
+    showUrl: true,
     description: 'Desarrollé el sitio institucional de un taller mecánico de Banfield para presentar sus servicios y facilitar las consultas de potenciales clientes.',
     contribution: 'Migré el sitio a Next.js y configuré la exportación estática para mantener la compatibilidad con el alojamiento existente. También trabajé sobre el SEO técnico inicial e integré Google Analytics.',
     url: 'https://www.totalmecanica.com.ar',
@@ -74,12 +74,13 @@ export const projects: Project[] = [
   {
     title: 'Sitio web de Ayelén Argerich',
     image: ayeArgerich,
-    category: 'Sitio profesional',
+    category: 'En producción',
     group: 'featured',
     action: 'site',
-    technologies: [],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Astro', 'PHP', 'Git', 'GitHub', 'Visual Studio Code'],
+    showUrl: true,
     description: 'Desarrollé y publiqué el sitio de Ayelén Argerich para reunir la presentación de su trabajo y facilitar el contacto desde una página propia.',
-    url: 'https://ayeargerich.com',
+    url: 'https://ayelenargerich.com',
   },
   {
     title: 'The Mobile Shop',
@@ -87,7 +88,7 @@ export const projects: Project[] = [
     category: 'E-commerce de práctica',
     group: 'training',
     action: 'demo',
-    technologies: ['React', 'React Router', 'Context API', 'Firestore'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
     description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito, flujo de pedido, checkout y base de datos NoSQL. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore. Este proyecto formó parte del trabajo final del curso de React en Coderhouse.',
     url: 'https://proyecto-coderhouse-react.vercel.app/',
   },
@@ -97,7 +98,7 @@ export const projects: Project[] = [
     category: 'E-commerce de práctica',
     group: 'training',
     action: 'demo',
-    technologies: ['JavaScript', 'localStorage', 'JSON'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Git', 'GitHub', 'Visual Studio Code'],
     description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página.',
     url: 'https://java-script-theta.vercel.app/',
   },
@@ -107,50 +108,44 @@ export const projects: Project[] = [
     category: 'Sitio web de práctica',
     group: 'training',
     action: 'site',
-    technologies: ['HTML', 'Sass', 'Bootstrap', 'BEM'],
+    technologies: ['HTML', 'CSS', 'Bootstrap', 'Sass', 'Git', 'GitHub', 'Visual Studio Code'],
     description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM.',
     url: 'https://andesxtreme.netlify.app/',
   },
 ];
 
-interface CompactProject {
-  title: string;
-  category: string;
-  description: string;
-  technologies: string[];
-  image: ImageMetadata;
-  url?: string;
-  status?: string;
-}
+export type DisplayProject = Omit<Project, 'group' | 'action' | 'url'> & Partial<Pick<Project, 'action' | 'url'>>;
 
-export const otherProjects: CompactProject[] = [
+export const otherProjects: DisplayProject[] = [
   {
     title: 'Trivia multijugador en C', image: trivia, category: 'Proyecto universitario',
     description: 'Desarrollé un juego de trivia multijugador para terminal. Usé listas enlazadas, memoria dinámica y archivos para persistir datos entre ejecuciones.',
-    technologies: ['C', 'Listas enlazadas', 'Archivos'],
+    technologies: ['C', 'Code::Blocks'],
+    action: 'video', url: 'https://lnkd.in/p/dSdJyh5F',
   },
   {
     title: 'Sistema de temporización en Assembler', image: assembler, category: 'Proyecto universitario',
     description: 'Implementé un sistema de temporización en Assembler para el PIC16F84A, con control de displays y manejo de interrupciones.',
-    technologies: ['Assembler', 'PIC16F84A'],
+    technologies: ['Proteus', 'MPLAB', 'C'],
+    action: 'video', url: 'https://lnkd.in/p/dXZXnC-8',
   },
   {
     title: 'Eventyfier', image: eventyfier, category: 'Proyecto de formación',
     description: 'Desarrollé un gestor de eventos con calendario en React y un bot de Telegram que permite cargar eventos por texto o audio.',
-    technologies: ['React', 'n8n', 'Supabase'], status: 'Demo fuera de línea.',
+    technologies: ['HTML', 'CSS', 'JavaScript', 'TypeScript', 'Supabase', 'n8n', 'Git', 'GitHub', 'Google Cloud', 'Visual Studio Code'], status: 'Demo fuera de línea.',
   },
 ];
 
 export const experiences = [
-  { company: 'Aureq', role: 'Desarrollador web freelance', description: 'Desarrollo de sitios web y soluciones digitales para comercios y profesionales.', items: ['Relevamiento de necesidades y desarrollo de interfaces.', 'Gestión de dominios, despliegue y mantenimiento de sitios.'] },
-  { company: 'Total Mecánica', role: 'Desarrollo y digitalización de procesos', description: 'Herramientas web para la presencia digital y la operación del taller.', items: ['Desarrollo del sitio institucional y la aplicación de historial vehicular.', 'Integración de datos históricos y herramientas de consulta.'] },
+  { company: 'Aureq', startYear: 2026, endYear: null, role: 'Desarrollador web freelance', description: 'Desarrollo de sitios web y soluciones digitales para comercios y profesionales.', items: ['Relevamiento de necesidades y desarrollo de interfaces.', 'Gestión de dominios, despliegue y mantenimiento de sitios.'] },
+  { company: 'Total Mecánica', startYear: 2024, endYear: 2026, role: 'Desarrollo y digitalización de procesos', description: 'Herramientas web para la presencia digital y la operación del taller.', items: ['Desarrollo del sitio institucional y la aplicación de historial vehicular.', 'Integración de datos históricos y herramientas de consulta.'] },
 ];
 
 export const skillGroups = [
-  { title: 'Frontend', items: ['React y Next.js', 'TypeScript y JavaScript', 'HTML semántico y CSS', 'Arquitectura de componentes'] },
-  { title: 'Datos e integración', items: ['Firebase y Firestore', 'Supabase y SQL', 'APIs REST', 'Python'] },
-  { title: 'Herramientas', items: ['Git y GitHub', 'Vite y Vercel', 'Dominios y DNS', 'Performance y SEO'] },
-  { title: 'Automatización e IA', items: ['n8n', 'Agentes y LLMs', 'Webhooks', 'Integraciones con Telegram'] },
+  { title: 'FRONTEND', items: ['HTML semántico y CSS', 'JavaScript y TypeScript', 'React y Next.js', 'Tailwind, Bootstrap, Sass, BEM', 'Diseño responsive'] },
+  { title: 'Datos e integración', items: ['Firebase, Firestore', 'Supabase, MySQL, PostgreSQL', 'API REST', 'Python', 'Node.js', 'Google Cloud', 'Docker'] },
+  { title: 'Herramientas', items: ['Git y GitHub', 'Vite y Vercel', 'Dominios y DNS', 'Performance y SEO', 'Analytics', 'Visual Studio Code', 'Code::Blocks'] },
+  { title: 'Automatización & IA', items: ['n8n', 'Claude AI y OpenAI', 'GitHub Copilot', 'Gentle AI, Gentle Shell y Engram', 'Agentes de IA y LLMs', 'Webhooks', 'Integraciones con Telegram'] },
 ];
 
 export const certifications = [

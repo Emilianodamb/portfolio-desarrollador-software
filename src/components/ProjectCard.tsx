@@ -1,13 +1,14 @@
-import type { Project } from '../data/portfolio';
+import type { DisplayProject } from '../data/portfolio';
 import { usePreferences } from '../context/PreferencesContext';
+import TechnologyList from './TechnologyList';
 
-export default function ProjectCard({ project }: { project: Project }) {
+export default function ProjectCard({ project }: { project: DisplayProject }) {
   const { ui } = usePreferences();
-  const actionLabels = { site: ui.viewSite, application: ui.viewApplication, demo: ui.viewDemo };
+  const actionLabels = { site: ui.viewSite, application: ui.viewApplication, demo: ui.viewDemo, video: ui.viewDemoVideo };
   return (
     <article className="project-card">
       <img
-        className={`project-card__image${project.imageOrientation === 'portrait' ? ' project-card__image--portrait' : ''}`}
+        className="project-card__image"
         src={project.image.src}
         width={project.image.width}
         height={project.image.height}
@@ -30,17 +31,13 @@ export default function ProjectCard({ project }: { project: Project }) {
             </div>
           )}
           {project.metric && <p className="project-card__metric">{project.metric}</p>}
-          {project.technologies.length > 0 && (
-            <ul className="tag-list" aria-label={ui.technologies}>
-              {project.technologies.map((technology) => <li className="tag-list__item" key={technology}>{technology}</li>)}
-            </ul>
-          )}
+          <TechnologyList technologies={project.technologies} />
         </div>
         <div className="project-card__footer">
           {project.status && <p className="project-card__status">{project.status}</p>}
           {project.url && (
             <div className="project-card__links">
-              <a href={project.url} target="_blank" rel="noopener noreferrer">{actionLabels[project.action]} <span aria-hidden="true">↗</span><span className="visually-hidden">: {project.title}</span></a>
+              <a href={project.url} target="_blank" rel="noopener noreferrer">{actionLabels[project.action ?? 'site']} {project.showUrl && <><span className="project-card__destination">({project.url})</span>{' '}</>}<span aria-hidden="true">↗</span><span className="visually-hidden">: {project.title}</span></a>
             </div>
           )}
         </div>

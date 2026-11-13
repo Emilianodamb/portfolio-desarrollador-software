@@ -1,11 +1,18 @@
 import { useEffect, useRef } from 'react';
 import portrait from '../assets/profile-hd.webp';
+import unlaLogo from '../../UNLA.svg?url&no-inline';
+import coderhouseLogo from '../../CODERHOUSE.svg?url&no-inline';
+import educacionItLogo from '../../EDUCACIONIT.svg?url&no-inline';
+import platziLogo from '../../PLATZI.svg?url&no-inline';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import CvDownload from './CvDownload';
-import InfoCard from './InfoCard';
+import ContentSection from './ContentSection';
 import PreferencesToggles from './PreferencesToggles';
 import ProjectCard from './ProjectCard';
 import Section from './Section';
+import WhatsAppTab from './WhatsAppTab';
+import TechnologySphere from './TechnologySphere';
+import DifferenceCursor from './DifferenceCursor';
 
 function SiteHeader() {
   const { content: { profile }, ui } = usePreferences();
@@ -29,12 +36,16 @@ function SiteHeader() {
   return (
     <header ref={header} className="site-header">
       <div className="site-header__inner">
-        <a className="site-header__brand" href="#inicio">{profile.name}</a>
+        <a className="site-header__brand" href="#inicio" aria-label={`${profile.name} · ${profile.role}`}>
+          <svg viewBox="0 0 240 52" aria-hidden="true" focusable="false">
+            <text className="site-header__name" x="1" y="21" textLength="238" lengthAdjust="spacing">{profile.name}</text>
+            <text className="site-header__role" x="1" y="45" textLength="238" lengthAdjust="spacing">{profile.role}</text>
+          </svg>
+        </a>
         <nav className="site-header__nav" aria-label={ui.navigation}>
           <a className="site-header__link" href="#proyectos">{ui.projects}</a>
           <a className="site-header__link" href="#experiencia">{ui.experience}</a>
           <PreferencesToggles />
-          <a className="button button--primary" href="#contacto">{ui.talk} <span aria-hidden="true">↗</span></a>
         </nav>
       </div>
     </header>
@@ -70,7 +81,7 @@ function Projects() {
   const { content: { projects, otherProjects }, ui } = usePreferences();
   return (
     <Section id="proyectos" title={ui.featuredTitle} marqueeTitle={ui.projects} alternate>
-      <h3 className="projects__subtitle">{ui.featuredTitle}</h3>
+      <h3 className="projects__subtitle">{ui.featuredGroupTitle}</h3>
       <div className="projects__featured" data-project-group="featured">
         {projects.filter((project) => project.group === 'featured').map((project) => <ProjectCard key={project.url} project={project} />)}
       </div>
@@ -82,7 +93,7 @@ function Projects() {
       </section>
       <section className="projects__other" aria-labelledby="other-projects-title">
         <h2 className="projects__subtitle" id="other-projects-title">{ui.otherTitle}</h2>
-        <div className="card-grid card-grid--three" data-project-group="other">{otherProjects.map((project) => <InfoCard key={project.image.src} {...project} compact />)}</div>
+        <div className="projects__featured" data-project-group="other">{otherProjects.map((project) => <ProjectCard key={project.image.src} project={project} />)}</div>
       </section>
     </Section>
   );
@@ -95,7 +106,15 @@ function Experience() {
       <div className="experience">
         {experiences.map((experience) => (
           <article className="experience__entry" key={experience.company}>
-            <header><h3 className="experience__company">{experience.company}</h3><p className="experience__role">{experience.role}</p></header>
+            <header>
+              <h3 className="experience__company">{experience.company}</h3>
+              <p className="experience__role">{experience.role}</p>
+              <p className="experience__period">
+                <time dateTime={String(experience.startYear)}>{experience.startYear}</time>
+                {' - '}
+                {experience.endYear ? <time dateTime={String(experience.endYear)}>{experience.endYear}</time> : ui.present}
+              </p>
+            </header>
             <div className="experience__details"><p>{experience.description}</p><ul>{experience.items.map((item) => <li key={item}>{item}</li>)}</ul></div>
           </article>
         ))}
@@ -107,25 +126,30 @@ function Experience() {
 function Skills() {
   const { content: { skillGroups }, ui } = usePreferences();
   return (
-    <Section id="habilidades" title={ui.skillsTitle} alternate>
-      <div className="card-grid card-grid--four">{skillGroups.map((group) => <InfoCard key={group.title} {...group} />)}</div>
+    <Section id="habilidades" title={ui.skillsTitle} marqueeTitle={ui.skillsTitle} alternate>
+      <div className="skills__groups">{skillGroups.map((group) => <ContentSection key={group.title} {...group} />)}</div>
+      <TechnologySphere />
     </Section>
   );
 }
 
+const institutionLogos: Record<string, string> = { Coderhouse: coderhouseLogo, 'EducaciónIT': educacionItLogo, Platzi: platziLogo };
+
 function Education() {
   const { content: { certifications }, ui } = usePreferences();
   return (
-    <Section id="sobre-mi" title={ui.educationTitle}>
+    <Section id="sobre-mi" title={ui.educationTitle} marqueeTitle={ui.educationTitle}>
       <div className="education">
         <div className="education__main">
-          <InfoCard title={ui.degree} category={ui.university} description={ui.degreeDescription} />
-          <h3 className="education__subtitle">{ui.courses}</h3>
-          <div className="card-grid card-grid--three">{certifications.map((course) => <InfoCard key={course.title} {...course} />)}</div>
+          <ContentSection title={ui.degree} category={ui.university} description={ui.degreeDescription} logo={{ src: unlaLogo, alt: ui.university }} />
+          <section className="education__certifications" aria-labelledby="education-courses-title">
+            <h3 className="education__subtitle" id="education-courses-title">{ui.courses}</h3>
+            <div className="education__courses">{certifications.map((course) => <ContentSection key={course.title} {...course} logo={{ src: institutionLogos[course.title], alt: course.title }} />)}</div>
+          </section>
         </div>
         <aside className="education__aside" aria-label={ui.additionalInfo}>
-          <InfoCard title={ui.languages} items={[ui.nativeSpanish, ui.intermediateEnglish]} />
-          <InfoCard title={ui.workMode} description={ui.workDescription} />
+          <ContentSection title={ui.languages} items={[ui.nativeSpanish, ui.intermediateEnglish]} />
+          <ContentSection title={ui.workMode} description={ui.workDescription} />
         </aside>
       </div>
     </Section>
@@ -146,7 +170,7 @@ function Contact() {
             <a href={profile.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
           </div>
         </div>
-        <div className="contact__card">
+        <div className="contact__invitation">
           <h3 className="contact__title">{ui.projectQuestion}</h3>
           <p>{ui.contactInvitation}</p>
           <a className="button button--primary" href={`mailto:${profile.email}`}>{ui.writeEmail} <span aria-hidden="true">↗</span></a>
@@ -172,6 +196,8 @@ function Portfolio() {
         <Contact />
       </main>
       <footer className="site-footer"><p>© {new Date().getFullYear()} {profile.name}</p><a href="#inicio">{ui.backToTop} ↑</a></footer>
+      <WhatsAppTab />
+      <DifferenceCursor />
     </>
   );
 }

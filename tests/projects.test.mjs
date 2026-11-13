@@ -5,46 +5,46 @@ import test from 'node:test';
 
 const expected = [
   {
-    title: 'Historial vehicular de Total Mecánica', category: 'Aplicación interna en uso',
+    title: 'Historial vehicular de Total Mecánica', category: 'En producción',
     description: 'Desarrollé una aplicación para consultar y actualizar el historial de vehículos del taller. Migré más de 3.000 registros del sistema anterior y publiqué la aplicación para que el equipo pudiera acceder desde distintos dispositivos.',
     contribution: 'Transformé los registros históricos de XML a JSON para incorporarlos a Firestore. Implementé la búsqueda de historiales en React y el acceso mediante Firebase Authentication.',
-    technologies: ['React', 'Tailwind CSS', 'Python', 'Firebase'],
-    links: [['https://total-mecanica.vercel.app/', 'Ver aplicación']],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Tailwind CSS', 'Python', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
+    links: [['https://lnkd.in/p/d6vi4X_H', 'Ver video demostración']],
   },
   {
-    title: 'Aureq', category: 'Sitio comercial',
+    title: 'Aureq', category: 'En producción',
     description: 'Diseñé y publiqué el sitio de mi emprendimiento de desarrollo web para presentar sus servicios y facilitar el contacto con comercios y profesionales.',
     contribution: 'Organicé el contenido, desarrollé la interfaz adaptable con Astro e incorporé animaciones con GSAP.',
-    technologies: ['Astro', 'GSAP'], links: [['https://aureq.com.ar', 'Ver sitio']],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Astro', 'GSAP', 'Git', 'GitHub', 'Google Cloud', 'Visual Studio Code'], links: [['https://aureq.com.ar', 'Ver sitio']],
   },
   {
-    title: 'Sitio web de Total Mecánica', category: 'Sitio institucional',
+    title: 'Sitio web de Total Mecánica', category: 'En producción',
     description: 'Desarrollé el sitio institucional de un taller mecánico de Banfield para presentar sus servicios y facilitar las consultas de potenciales clientes.',
     contribution: 'Migré el sitio a Next.js y configuré la exportación estática para mantener la compatibilidad con el alojamiento existente. También trabajé sobre el SEO técnico inicial e integré Google Analytics.',
-    technologies: ['Next.js', 'React', 'TypeScript', 'Google Analytics'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'TypeScript', 'React', 'Vite', 'Next.js', 'Google Analytics', 'Git', 'GitHub', 'GitHub Copilot', 'Tailwind CSS', 'Visual Studio Code'],
     links: [['https://www.totalmecanica.com.ar', 'Ver sitio']],
   },
   {
-    title: 'Sitio web de Ayelén Argerich', category: 'Sitio profesional',
+    title: 'Sitio web de Ayelén Argerich', category: 'En producción',
     description: 'Desarrollé y publiqué el sitio de Ayelén Argerich para reunir la presentación de su trabajo y facilitar el contacto desde una página propia.',
-    technologies: [], links: [['https://ayeargerich.com', 'Ver sitio']],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Astro', 'PHP', 'Git', 'GitHub', 'Visual Studio Code'], links: [['https://ayelenargerich.com', 'Ver sitio']],
   },
   {
     title: 'The Mobile Shop', category: 'E-commerce de práctica',
-    description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito y flujo de pedido. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore.',
-    technologies: ['React', 'React Router', 'Context API', 'Firestore'],
+    description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito, flujo de pedido, checkout y base de datos NoSQL. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore. Este proyecto formó parte del trabajo final del curso de React en Coderhouse.',
+    technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
     links: [['https://proyecto-coderhouse-react.vercel.app/', 'Ver demo']],
   },
   {
     title: 'Ferretería Online', category: 'E-commerce de práctica',
     description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página.',
-    technologies: ['JavaScript', 'localStorage', 'JSON'],
+    technologies: ['HTML', 'CSS', 'JavaScript', 'Git', 'GitHub', 'Visual Studio Code'],
     links: [['https://java-script-theta.vercel.app/', 'Ver demo']],
   },
   {
     title: 'Andes Xtreme', category: 'Sitio web de práctica',
     description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM.',
-    technologies: ['HTML', 'Sass', 'Bootstrap', 'BEM'],
+    technologies: ['HTML', 'CSS', 'Bootstrap', 'Sass', 'Git', 'GitHub', 'Visual Studio Code'],
     links: [['https://andesxtreme.netlify.app/', 'Ver sitio']],
   },
 ];
@@ -63,27 +63,27 @@ test('Spanish projects match the requested groups, copy, technologies and action
   const groups = html.split(/data-project-group="(?:featured|training|other)"/).slice(1);
   assert.equal((groups[0].match(/class="project-card"/g) ?? []).length, 4);
   assert.equal((groups[1].match(/class="project-card"/g) ?? []).length, 3);
-  const cards = [...html.matchAll(/<article class="project-card">[\s\S]*?<\/article>/g)].map((match) => match[0]);
+  const cards = [...html.matchAll(/<article class="project-card">[\s\S]*?<\/article>/g)].map((match) => match[0]).slice(0, 7);
   assert.equal(cards.length, expected.length);
   for (const [index, project] of expected.entries()) {
     const card = cards[index];
     assert.ok(card.includes(`>${project.title}</h3>`), project.title);
     for (const text of [project.category, project.description, project.contribution].filter(Boolean)) assert.ok(card.includes(text), text);
-    assert.deepEqual([...card.matchAll(/class="tag-list__item">([^<]+)</g)].map((match) => match[1]), project.technologies);
+    assert.deepEqual([...card.matchAll(/data-technology="([^"]+)"/g)].map((match) => match[1]), project.technologies);
     for (const [url, label] of project.links) assert.ok(card.includes(`href="${url}"`) && card.includes(label), `${project.title}: ${label}`);
     assert.equal((card.match(/<a /g) ?? []).length, project.links.length);
     assert.equal((card.match(/class="project-card__label"/g) ?? []).length, 0);
   }
   assert.ok(cards[0].includes('3.000 registros'));
-  assert.ok(cards[0].includes('Acceso restringido'));
+  assert.ok(!cards[0].includes('Acceso restringido'));
   assert.ok(cards[0].includes('baseinteractiva-anonimizada.'));
   const files = await readdir(new URL('../dist/_astro/', import.meta.url));
   assert.ok(!files.some((file) => file.startsWith('baseinteractiva.')), 'Original customer screenshot must not be published');
 });
 
-test('technical projects stay compact with Eventyfier offline and without links', async () => {
+test('other projects reuse open rows with Eventyfier offline and without links', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  const cards = [...html.matchAll(/<article class="info-card info-card--compact">[\s\S]*?<\/article>/g)].map((match) => match[0]);
+  const cards = [...html.matchAll(/<article class="project-card">[\s\S]*?<\/article>/g)].map((match) => match[0]).slice(7);
   const titles = ['Trivia multijugador en C', 'Sistema de temporización en Assembler', 'Eventyfier'];
   const descriptions = [
     'Desarrollé un juego de trivia multijugador para terminal. Usé listas enlazadas, memoria dinámica y archivos para persistir datos entre ejecuciones.',
@@ -95,8 +95,14 @@ test('technical projects stay compact with Eventyfier offline and without links'
     assert.ok(cards[index].includes(`>${title}</h3>`));
     assert.ok(cards[index].includes(descriptions[index]));
   }
-  assert.ok(cards[0].includes('C · Listas enlazadas · Archivos'));
-  assert.ok(cards.every((card) => !card.includes('<a ')), 'Projects without a live view must not link to repositories');
+  assert.deepEqual([...cards[0].matchAll(/data-technology="([^"]+)"/g)].map((match) => match[1]), ['C', 'Code::Blocks']);
+  assert.deepEqual([...cards[1].matchAll(/data-technology="([^"]+)"/g)].map((match) => match[1]), ['Proteus', 'MPLAB', 'C']);
+  assert.match(cards[0], /<img[^>]*class="technology-logo[^>]*alt="C"/);
+  for (const [index, url] of [[0, 'https://lnkd.in/p/dSdJyh5F'], [1, 'https://lnkd.in/p/dXZXnC-8']]) {
+    assert.ok(cards[index].includes(`href="${url}"`));
+    assert.ok(cards[index].includes('Ver video demostración'));
+    assert.match(cards[index], /target="_blank" rel="noopener noreferrer"/);
+  }
   assert.ok(cards[2].includes('Demo fuera de línea.'));
   assert.ok(!cards[2].includes('<a '));
   assert.ok(!html.includes('Contenido provisional de la referencia'));
@@ -127,7 +133,7 @@ test('published assets contain the anonymized mockup but not the original custom
   assert.ok(safePublished, 'The anonymized mockup must be published');
 });
 
-test('anonymized phone mockup preserves the complete original dimensions', async () => {
+test('replacement database image is published as an uncropped landscape screenshot', async () => {
   async function dimensions(name) {
     const bytes = await readFile(new URL(`../src/assets/projects/${name}`, import.meta.url));
     assert.equal(bytes.readUInt16BE(0), 0xffd8);
@@ -146,6 +152,11 @@ test('anonymized phone mockup preserves the complete original dimensions', async
   }
 
   const safe = await dimensions('baseinteractiva-anonimizada.jpg');
-  assert.deepEqual(safe, await dimensions('baseinteractiva.jpg'));
-  assert.ok(safe[1] > safe[0], 'The complete mockup must remain vertical');
+  assert.ok(safe[0] > safe[1], 'The replacement screenshot must be landscape');
+  const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  const image = html.match(/<img\b[^>]*class="project-card__image"[^>]*>/)?.[0];
+  assert.ok(image?.includes('baseinteractiva-anonimizada.'));
+  assert.match(image, new RegExp(`width="${safe[0]}"`));
+  assert.match(image, new RegExp(`height="${safe[1]}"`));
+  assert.ok(!html.includes('project-card__image--portrait'));
 });

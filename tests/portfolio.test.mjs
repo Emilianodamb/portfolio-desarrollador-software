@@ -16,12 +16,12 @@ test('section marquees size their headings relative to viewport height', async (
   assert.match(css, /@media\s*\(max-width:\s*960px\)\s*{[\s\S]*?\.section-marquee\s*{\s*font-size:\s*25vh\s*;/);
 });
 
-test('built portfolio includes all reference sections and reusable cards', async () => {
+test('built portfolio includes all reference sections and ten open project rows', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   for (const id of ['inicio', 'proyectos', 'experiencia', 'habilidades', 'sobre-mi', 'contacto']) {
     assert.ok(html.includes(`id="${id}"`), `Missing section: ${id}`);
   }
-  assert.equal((html.match(/class="project-card"/g) ?? []).length, 7);
+  assert.equal((html.match(/class="project-card"/g) ?? []).length, 10);
   assert.ok(html.includes('lang="es"'));
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1);
   assert.ok(html.includes('id="cv-download"'));
@@ -75,9 +75,9 @@ test('hero publishes the supplied WebP with dimensions and descriptive alt text'
   assert.deepEqual(published, original);
 });
 
-test('project cards publish ten local images without changing text-only cards', async () => {
+test('project rows publish ten local images while skill lists remain text-only', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  const images = html.match(/<img\b[^>]*class="(?:project-card|info-card)__image(?: [^"]*)?"[^>]*>/g) ?? [];
+  const images = html.match(/<img\b[^>]*class="project-card__image(?: [^"]*)?"[^>]*>/g) ?? [];
   assert.equal(images.length, 10);
   for (const image of images) {
     assert.match(image, /loading="lazy"/);
@@ -87,7 +87,7 @@ test('project cards publish ten local images without changing text-only cards', 
     const src = image.match(/src="([^"]+)"/)[1];
     assert.ok((await readFile(new URL(`../dist${src}`, import.meta.url))).length > 0);
   }
-  const skillCard = html.match(/<article class="info-card">(?:(?!<\/article>)[\s\S])*?<h3 class="info-card__title">Frontend<\/h3>[\s\S]*?<\/article>/)?.[0];
+  const skillCard = html.match(/<section class="content-section">(?:(?!<\/section>)[\s\S])*?<h3 class="content-section__title">FRONTEND<\/h3>[\s\S]*?<\/section>/)?.[0];
   assert.ok(skillCard);
   assert.ok(!skillCard.includes('<img'));
 });
@@ -97,7 +97,7 @@ test('featured websites appear once and use a portrait-only stacked layout', asy
   for (const title of ['Aureq', 'Sitio web de Total Mecánica', 'Sitio web de Ayelén Argerich']) {
     assert.equal(html.split(`<h3 class="project-card__title">${title}</h3>`).length - 1, 1);
   }
-  for (const url of ['https://aureq.com.ar', 'https://www.totalmecanica.com.ar', 'https://ayeargerich.com']) {
+  for (const url of ['https://aureq.com.ar', 'https://www.totalmecanica.com.ar', 'https://ayelenargerich.com']) {
     assert.ok(html.includes(`href="${url}"`));
   }
   const css = await readFile(new URL('../src/styles/global.css', import.meta.url), 'utf8');
