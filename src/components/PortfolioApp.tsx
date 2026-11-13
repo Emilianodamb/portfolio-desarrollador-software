@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import portrait from '../assets/profile-hd.webp';
 import { PreferencesProvider, usePreferences } from '../context/PreferencesContext';
 import CvDownload from './CvDownload';
@@ -8,8 +9,25 @@ import Section from './Section';
 
 function SiteHeader() {
   const { content: { profile }, ui } = usePreferences();
+  const header = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--header-height', `${element.getBoundingClientRect().height}px`);
+    };
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--header-height');
+    };
+  }, []);
+
   return (
-    <header className="site-header">
+    <header ref={header} className="site-header">
       <div className="site-header__inner">
         <a className="site-header__brand" href="#inicio">{profile.name}</a>
         <nav className="site-header__nav" aria-label={ui.navigation}>
@@ -28,7 +46,6 @@ function Hero() {
   return (
     <section className="hero" id="inicio" aria-labelledby="hero-title">
       <div className="hero__content">
-        <p className="hero__eyebrow">{ui.eyebrow}</p>
         <h1 className="hero__title" id="hero-title">{profile.name}</h1>
         <p className="hero__role">{profile.role} <span className="hero__stack">React · JavaScript · TypeScript</span></p>
         <p className="hero__description">{profile.introduction}</p>
@@ -52,12 +69,21 @@ function Hero() {
 function Projects() {
   const { content: { projects, otherProjects }, ui } = usePreferences();
   return (
-    <Section id="proyectos" title={ui.featuredTitle} description={ui.featuredDescription} alternate>
-      <div className="projects__featured">{projects.map((project) => <ProjectCard key={project.url} project={project} />)}</div>
-      <div className="projects__other">
-        <h3 className="projects__subtitle">{ui.otherTitle}</h3>
-        <div className="card-grid card-grid--three">{otherProjects.map((project) => <InfoCard key={project.image.src} {...project} />)}</div>
+    <Section id="proyectos" title={ui.featuredTitle} marqueeTitle={ui.projects} alternate>
+      <h3 className="projects__subtitle">{ui.featuredTitle}</h3>
+      <div className="projects__featured" data-project-group="featured">
+        {projects.filter((project) => project.group === 'featured').map((project) => <ProjectCard key={project.url} project={project} />)}
       </div>
+      <section className="projects__other" aria-labelledby="training-projects-title">
+        <h2 className="projects__subtitle" id="training-projects-title">{ui.trainingTitle}</h2>
+        <div className="projects__featured" data-project-group="training">
+          {projects.filter((project) => project.group === 'training').map((project) => <ProjectCard key={project.url} project={project} />)}
+        </div>
+      </section>
+      <section className="projects__other" aria-labelledby="other-projects-title">
+        <h2 className="projects__subtitle" id="other-projects-title">{ui.otherTitle}</h2>
+        <div className="card-grid card-grid--three" data-project-group="other">{otherProjects.map((project) => <InfoCard key={project.image.src} {...project} compact />)}</div>
+      </section>
     </Section>
   );
 }
@@ -65,7 +91,7 @@ function Projects() {
 function Experience() {
   const { content: { experiences }, ui } = usePreferences();
   return (
-    <Section id="experiencia" title={ui.experienceTitle} description={ui.experienceDescription}>
+    <Section id="experiencia" title={ui.experienceTitle} marqueeTitle={ui.experience}>
       <div className="experience">
         {experiences.map((experience) => (
           <article className="experience__entry" key={experience.company}>
@@ -81,7 +107,7 @@ function Experience() {
 function Skills() {
   const { content: { skillGroups }, ui } = usePreferences();
   return (
-    <Section id="habilidades" title={ui.skillsTitle} description={ui.skillsDescription} alternate>
+    <Section id="habilidades" title={ui.skillsTitle} alternate>
       <div className="card-grid card-grid--four">{skillGroups.map((group) => <InfoCard key={group.title} {...group} />)}</div>
     </Section>
   );
@@ -90,7 +116,7 @@ function Skills() {
 function Education() {
   const { content: { certifications }, ui } = usePreferences();
   return (
-    <Section id="sobre-mi" title={ui.educationTitle} description={ui.educationDescription}>
+    <Section id="sobre-mi" title={ui.educationTitle}>
       <div className="education">
         <div className="education__main">
           <InfoCard title={ui.degree} category={ui.university} description={ui.degreeDescription} />
@@ -109,7 +135,7 @@ function Education() {
 function Contact() {
   const { content: { profile }, ui } = usePreferences();
   return (
-    <Section id="contacto" title={ui.contactTitle} description={ui.contactDescription} alternate>
+    <Section id="contacto" title={ui.contactTitle} alternate>
       <div className="contact">
         <div className="contact__details">
           <p className="contact__label">{ui.emailLabel}</p>

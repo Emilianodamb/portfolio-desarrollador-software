@@ -13,7 +13,7 @@ import ayeArgerich from '../assets/projects/ayeargerich.jpg';
 export const profile = {
   name: "Emiliano D'Ambrosio",
   role: 'Desarrollador Frontend',
-  introduction: 'Desarrollo interfaces web claras y funcionales, desde la idea inicial hasta su puesta en producción.',
+  introduction: 'Programador en constante crecimiento y aprendizaje permanente. Aplico mis concimientos en cada nuevo proyecto y me esfuerzo por crear productos de calidad. Estudio Licenciatura en Sistemas en la Universidad Nacional de Lanús.',
   email: 'emiliano.dambrosio.dev@gmail.com',
   github: 'https://github.com/Emilianodamb',
   linkedin: 'https://www.linkedin.com/in/emiliano-dambrosio/',
@@ -23,86 +23,122 @@ export const profile = {
 export interface Project {
   title: string;
   category: string;
+  group: 'featured' | 'training';
+  action: 'site' | 'application' | 'demo';
   technologies: string[];
-  context: string;
-  challenge?: string;
+  description: string;
+  contribution?: string;
+  metric?: string;
+  status?: string;
   url: string;
-  repository?: string;
   image: ImageMetadata;
+  imageOrientation?: 'portrait';
 }
 
 export const projects: Project[] = [
   {
-    title: 'Sitio web Aureq',
+    title: 'Historial vehicular de Total Mecánica',
+    image: baseInteractiva,
+    imageOrientation: 'portrait',
+    category: 'Aplicación interna en uso',
+    group: 'featured',
+    action: 'application',
+    description: 'Desarrollé una aplicación para consultar y actualizar el historial de vehículos del taller. Migré más de 3.000 registros del sistema anterior y publiqué la aplicación para que el equipo pudiera acceder desde distintos dispositivos.',
+    contribution: 'Transformé los registros históricos de XML a JSON para incorporarlos a Firestore. Implementé la búsqueda de historiales en React y el acceso mediante Firebase Authentication.',
+    technologies: ['React', 'Tailwind CSS', 'Python', 'Firebase'],
+    status: 'Acceso restringido',
+    url: 'https://total-mecanica.vercel.app/',
+  },
+  {
+    title: 'Aureq',
     image: aureq,
-    category: 'Sitio institucional',
-    technologies: [],
-    context: 'Sitio web de Aureq, un espacio de presentación de servicios y soluciones digitales.',
+    category: 'Sitio comercial',
+    group: 'featured',
+    action: 'site',
+    description: 'Diseñé y publiqué el sitio de mi emprendimiento de desarrollo web para presentar sus servicios y facilitar el contacto con comercios y profesionales.',
+    contribution: 'Organicé el contenido, desarrollé la interfaz adaptable con Astro e incorporé animaciones con GSAP.',
+    technologies: ['Astro', 'GSAP'],
     url: 'https://aureq.com.ar',
   },
   {
-    title: 'Sitio web Total Mecánica',
+    title: 'Sitio web de Total Mecánica',
     image: totalMecanica,
     category: 'Sitio institucional',
+    group: 'featured',
+    action: 'site',
     technologies: ['Next.js', 'React', 'TypeScript', 'Google Analytics'],
-    context: 'Presencia digital para un taller mecánico, orientada a la captación de clientes y campañas de Google Ads.',
-    challenge: 'Migración a Next.js y exportación estática para mejorar el SEO y mantener compatibilidad con hosting tradicional.',
+    description: 'Desarrollé el sitio institucional de un taller mecánico de Banfield para presentar sus servicios y facilitar las consultas de potenciales clientes.',
+    contribution: 'Migré el sitio a Next.js y configuré la exportación estática para mantener la compatibilidad con el alojamiento existente. También trabajé sobre el SEO técnico inicial e integré Google Analytics.',
     url: 'https://www.totalmecanica.com.ar',
-    repository: 'https://github.com/Emilianodamb/landingtm-v3',
   },
   {
-    title: 'Sitio web Ayelén Argerich',
+    title: 'Sitio web de Ayelén Argerich',
     image: ayeArgerich,
     category: 'Sitio profesional',
+    group: 'featured',
+    action: 'site',
     technologies: [],
-    context: 'Sitio web profesional de Ayelén Argerich.',
+    description: 'Desarrollé y publiqué el sitio de Ayelén Argerich para reunir la presentación de su trabajo y facilitar el contacto desde una página propia.',
     url: 'https://ayeargerich.com',
-  },
-  {
-    title: 'Base de datos interactiva Total Mecánica',
-    image: baseInteractiva,
-    category: 'Aplicación interna',
-    technologies: ['React', 'Python', 'Firebase Firestore', 'Firebase Authentication'],
-    context: 'Digitalización del historial vehicular del taller con búsquedas y acceso centralizado a la información.',
-    challenge: 'Transformación de registros históricos XML a JSON e integración con una base de datos en la nube.',
-    url: 'https://total-mecanica.vercel.app/',
   },
   {
     title: 'The Mobile Shop',
     image: mobileShop,
-    category: 'Comercio electrónico',
-    technologies: ['React', 'React Router', 'Firestore', 'Context API'],
-    context: 'Tienda de dispositivos con catálogo por categorías, carrito de compras y flujo de checkout.',
-    challenge: 'Gestión del estado compartido con Context API e integración de las órdenes con Firestore.',
+    category: 'E-commerce de práctica',
+    group: 'training',
+    action: 'demo',
+    technologies: ['React', 'React Router', 'Context API', 'Firestore'],
+    description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito, flujo de pedido, checkout y base de datos NoSQL. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore. Este proyecto formó parte del trabajo final del curso de React en Coderhouse.',
     url: 'https://proyecto-coderhouse-react.vercel.app/',
-    repository: 'https://github.com/Emilianodamb/proyecto-coderhouse-react',
   },
   {
     title: 'Ferretería Online',
     image: ferreteria,
-    category: 'Comercio electrónico',
-    technologies: ['JavaScript', 'LocalStorage', 'JSON', 'SweetAlert'],
-    context: 'Tienda interactiva con carga de productos, filtros y simulación de compra sin recargar la página.',
-    challenge: 'Sincronización de la interfaz y el carrito persistente utilizando JavaScript sin un framework de UI.',
+    category: 'E-commerce de práctica',
+    group: 'training',
+    action: 'demo',
+    technologies: ['JavaScript', 'localStorage', 'JSON'],
+    description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página.',
     url: 'https://java-script-theta.vercel.app/',
-    repository: 'https://github.com/Emilianodamb/ferreteria-online',
   },
   {
     title: 'Andes Xtreme',
     image: andesXtreme,
-    category: 'Sitio de turismo aventura',
-    technologies: ['HTML', 'CSS', 'SASS', 'BEM', 'Bootstrap'],
-    context: 'Sitio institucional para un proyecto de turismo aventura, con información de actividades y destinos.',
-    challenge: 'Maquetación responsive, HTML semántico y organización de estilos mediante SASS y BEM.',
+    category: 'Sitio web de práctica',
+    group: 'training',
+    action: 'site',
+    technologies: ['HTML', 'Sass', 'Bootstrap', 'BEM'],
+    description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM.',
     url: 'https://andesxtreme.netlify.app/',
-    repository: 'https://github.com/Emilianodamb/andesXtreme',
   },
 ];
 
-export const otherProjects = [
-  { title: 'Trivia multijugador en C', image: trivia, category: 'Estructuras de datos', description: 'Juego de terminal con listas enlazadas, gestión de memoria y persistencia en archivos.', technologies: ['C', 'Punteros', 'TDAs'], url: 'https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION' },
-  { title: 'Detonación en Assembler', image: assembler, category: 'Hardware y bajo nivel', description: 'Proyecto para PIC16F84A con temporizadores, displays e interrupciones.', technologies: ['Assembler', 'PIC16F84A'], url: 'https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS' },
-  { title: 'Eventyfier', image: eventyfier, category: 'Automatización e IA', description: 'Gestión de eventos e integraciones con bots de mensajería. Contenido provisional de la referencia.', technologies: ['React', 'n8n', 'Supabase'] },
+interface CompactProject {
+  title: string;
+  category: string;
+  description: string;
+  technologies: string[];
+  image: ImageMetadata;
+  url?: string;
+  status?: string;
+}
+
+export const otherProjects: CompactProject[] = [
+  {
+    title: 'Trivia multijugador en C', image: trivia, category: 'Proyecto universitario',
+    description: 'Desarrollé un juego de trivia multijugador para terminal. Usé listas enlazadas, memoria dinámica y archivos para persistir datos entre ejecuciones.',
+    technologies: ['C', 'Listas enlazadas', 'Archivos'],
+  },
+  {
+    title: 'Sistema de temporización en Assembler', image: assembler, category: 'Proyecto universitario',
+    description: 'Implementé un sistema de temporización en Assembler para el PIC16F84A, con control de displays y manejo de interrupciones.',
+    technologies: ['Assembler', 'PIC16F84A'],
+  },
+  {
+    title: 'Eventyfier', image: eventyfier, category: 'Proyecto de formación',
+    description: 'Desarrollé un gestor de eventos con calendario en React y un bot de Telegram que permite cargar eventos por texto o audio.',
+    technologies: ['React', 'n8n', 'Supabase'], status: 'Demo fuera de línea.',
+  },
 ];
 
 export const experiences = [

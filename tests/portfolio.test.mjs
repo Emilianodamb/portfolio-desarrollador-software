@@ -2,6 +2,20 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+test('sections omit description elements while retaining accessible headings and content', async () => {
+  const section = await readFile(new URL('../src/components/Section.tsx', import.meta.url), 'utf8');
+  assert.ok(!section.includes('section__description'));
+  assert.ok(section.includes('aria-labelledby={`${id}-title`}'));
+  assert.ok(section.includes('<h2 id={`${id}-title`}'));
+  assert.ok(section.includes('{children}'));
+});
+
+test('section marquees size their headings relative to viewport height', async () => {
+  const css = await readFile(new URL('../src/styles/global.css', import.meta.url), 'utf8');
+  assert.match(css, /\.section-marquee\s*{[^}]*font-size:\s*40vh\s*;/);
+  assert.match(css, /@media\s*\(max-width:\s*960px\)\s*{[\s\S]*?\.section-marquee\s*{\s*font-size:\s*25vh\s*;/);
+});
+
 test('built portfolio includes all reference sections and reusable cards', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   for (const id of ['inicio', 'proyectos', 'experiencia', 'habilidades', 'sobre-mi', 'contacto']) {
@@ -63,7 +77,7 @@ test('hero publishes the supplied WebP with dimensions and descriptive alt text'
 
 test('project cards publish ten local images without changing text-only cards', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  const images = html.match(/<img\b[^>]*class="(?:project-card|info-card)__image"[^>]*>/g) ?? [];
+  const images = html.match(/<img\b[^>]*class="(?:project-card|info-card)__image(?: [^"]*)?"[^>]*>/g) ?? [];
   assert.equal(images.length, 10);
   for (const image of images) {
     assert.match(image, /loading="lazy"/);
@@ -80,7 +94,7 @@ test('project cards publish ten local images without changing text-only cards', 
 
 test('featured websites appear once and use a portrait-only stacked layout', async () => {
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  for (const title of ['Sitio web Aureq', 'Sitio web Total Mecánica', 'Sitio web Ayelén Argerich']) {
+  for (const title of ['Aureq', 'Sitio web de Total Mecánica', 'Sitio web de Ayelén Argerich']) {
     assert.equal(html.split(`<h3 class="project-card__title">${title}</h3>`).length - 1, 1);
   }
   for (const url of ['https://aureq.com.ar', 'https://www.totalmecanica.com.ar', 'https://ayeargerich.com']) {
