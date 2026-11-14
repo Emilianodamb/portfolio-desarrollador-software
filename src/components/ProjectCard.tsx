@@ -35,9 +35,10 @@ export default function ProjectCard({ project }: { project: DisplayProject }) {
         </div>
         <div className="project-card__footer">
           {project.status && <p className="project-card__status">{project.status}</p>}
-          {project.url && (
+          {(project.url || project.repositoryUrl) && (
             <div className="project-card__links">
-              <a href={project.url} target="_blank" rel="noopener noreferrer">{actionLabels[project.action ?? 'site']} {project.showUrl && <><span className="project-card__destination">({project.url})</span>{' '}</>}<span aria-hidden="true">↗</span><span className="visually-hidden">: {project.title}</span></a>
+              {project.url && <a href={project.url} target="_blank" rel="noopener noreferrer">{actionLabels[project.action ?? 'site']} {project.showUrl && <><span className="project-card__destination">({project.url})</span>{' '}</>}<span aria-hidden="true">↗</span><span className="visually-hidden">: {project.title}</span></a>}
+              {project.repositoryUrl && <a className="project-card__repository" href={project.repositoryUrl} target="_blank" rel="noopener noreferrer">{ui.viewRepository} <span aria-hidden="true">↗</span><span className="visually-hidden">: {project.title}</span></a>}
             </div>
           )}
         </div>

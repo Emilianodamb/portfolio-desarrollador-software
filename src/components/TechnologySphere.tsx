@@ -15,6 +15,7 @@ export default function TechnologySphere() {
   const { ui } = usePreferences();
   const container = useRef<HTMLDivElement>(null);
   const phase = useRef({ yaw: 0, pitch: 0 });
+  const viewRotation = useRef([1, 0, 0, 0, 1, 0, 0, 0, 1]);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -35,33 +36,64 @@ export default function TechnologySphere() {
     const defaultSpeed = 0.00018;
     let yawSpeed = defaultSpeed;
     let pitchSpeed = 0;
-    let drag: { id: number; x: number; y: number; time: number } | null = null;
+    let viewYawSpeed = 0;
+    let viewPitchSpeed = 0;
+    let drag: { id: number; time: number; x: number; y: number; freeRotation: boolean; index: number; u: number; v: number; width: number; height: number; nodeHeight: number } | null = null;
+    const zoom = 1.1;
+    const cameraDistance = 2.2;
+    const getRadius = () => (width <= 640 ? height * 0.37 : Math.min(width * 0.4, height * 0.42)) * zoom;
+
+    const rotateView = (yaw: number, pitch: number) => {
+      if (!yaw && !pitch) return;
+      const matrix = viewRotation.current;
+      const next = new Array<number>(9);
+      // Compose rotations in screen axes, so repeated vertical turns never invert horizontal dragging.
+      for (let column = 0; column < 3; column++) {
+        const x = matrix[column] * Math.cos(yaw) + matrix[6 + column] * Math.sin(yaw);
+        const y = matrix[3 + column];
+        const z = matrix[6 + column] * Math.cos(yaw) - matrix[column] * Math.sin(yaw);
+        next[column] = x;
+        next[3 + column] = y * Math.cos(pitch) - z * Math.sin(pitch);
+        next[6 + column] = y * Math.sin(pitch) + z * Math.cos(pitch);
+      }
+      viewRotation.current = next;
+    };
+
+    const project = (point: typeof points[number], yaw: number, pitch: number) => {
+      const radius = getRadius();
+      const tilt = 0.3 + Math.sin(yaw * 0.6) * 0.2 + pitch;
+      const x = point.x * Math.cos(yaw) + point.z * Math.sin(yaw);
+      const rotatedZ = point.z * Math.cos(yaw) - point.x * Math.sin(yaw);
+      const y = point.y * Math.cos(tilt) - rotatedZ * Math.sin(tilt);
+      const z = point.y * Math.sin(tilt) + rotatedZ * Math.cos(tilt);
+      const matrix = viewRotation.current;
+      const viewX = matrix[0] * x + matrix[1] * y + matrix[2] * z;
+      const viewY = matrix[3] * x + matrix[4] * y + matrix[5] * z;
+      const viewZ = matrix[6] * x + matrix[7] * y + matrix[8] * z;
+      const perspective = cameraDistance / (cameraDistance - viewZ);
+      return {
+        px: width / 2 + viewX * radius * perspective,
+        py: height / 2 + viewY * radius * perspective * 0.78,
+        depth: (viewZ + 1) / 2,
+        scale: 0.95 * perspective * zoom,
+      };
+    };
 
     const render = () => {
       const cx = width / 2;
       const cy = height / 2;
-      const zoom = 1.1;
-      const radius = (width <= 640 ? height * 0.37 : Math.min(width * 0.4, height * 0.42)) * zoom;
-      const cameraDistance = 2.2;
+      const radius = getRadius();
       const hubPerspective = cameraDistance / (cameraDistance - 0.8);
       const hubY = cy - radius * 0.08 * hubPerspective;
       const yaw = phase.current.yaw;
-      const tilt = 0.3 + Math.sin(yaw * 0.6) * 0.2 + phase.current.pitch;
       center.setAttribute('cx', String(cx));
       center.setAttribute('cy', String(hubY));
       center.setAttribute('r', String(4 * hubPerspective));
 
       points.forEach((point, index) => {
-        const x = point.x * Math.cos(yaw) + point.z * Math.sin(yaw);
-        const rotatedZ = point.z * Math.cos(yaw) - point.x * Math.sin(yaw);
-        const y = point.y * Math.cos(tilt) - rotatedZ * Math.sin(tilt);
-        const z = point.y * Math.sin(tilt) + rotatedZ * Math.cos(tilt);
-        const perspective = cameraDistance / (cameraDistance - z);
-        const px = cx + x * radius * perspective;
-        const py = cy + y * radius * perspective * 0.78;
-        const depth = (z + 1) / 2;
+        const { px, py, depth, scale } = project(point, yaw, phase.current.pitch);
         const node = nodes[index];
-        node.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -100%) scale(${0.95 * perspective * zoom})`;
+        node.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -100%) scale(${scale})`;
         node.style.opacity = String(0.4 + depth * 0.6);
         node.style.zIndex = String(Math.round(depth * 100) + 1);
         node.dataset.x = String(px);
@@ -89,8 +121,11 @@ export default function TechnologySphere() {
         // Integrate the decaying fling, settling back to the original automatic speed.
         phase.current.yaw += defaultSpeed * elapsed + (yawSpeed - defaultSpeed) * 500 * (1 - decay);
         phase.current.pitch += pitchSpeed * 500 * (1 - decay);
+        rotateView(viewYawSpeed * 500 * (1 - decay), viewPitchSpeed * 500 * (1 - decay));
         yawSpeed = defaultSpeed + (yawSpeed - defaultSpeed) * decay;
         pitchSpeed *= decay;
+        viewYawSpeed *= decay;
+        viewPitchSpeed *= decay;
       }
       lastTime = time;
       render();
@@ -103,6 +138,8 @@ export default function TechnologySphere() {
       if (!visible || paused || reducedMotion.matches || document.hidden) {
         yawSpeed = defaultSpeed;
         pitchSpeed = 0;
+        viewYawSpeed = 0;
+        viewPitchSpeed = 0;
       }
       if (visible && !paused && !reducedMotion.matches && !document.hidden) {
         frame = requestAnimationFrame(animate);
@@ -117,24 +154,95 @@ export default function TechnologySphere() {
     const startDrag = (event: PointerEvent) => {
       if (!event.isPrimary || event.button !== 0 || drag) return;
       const logo = event.target instanceof HTMLImageElement ? event.target : null;
-      if (logo?.closest<HTMLElement>('.technology-sphere__node')?.dataset.front !== 'true') return;
+      const node = logo?.closest<HTMLElement>('.technology-sphere__node');
+      if (!logo || !node || node.dataset.front !== 'true') return;
+      const rect = logo.getBoundingClientRect();
       surface.setPointerCapture(event.pointerId);
-      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
+      drag = {
+        id: event.pointerId, time: event.timeStamp, x: event.clientX, y: event.clientY, freeRotation: false, index: nodes.indexOf(node),
+        u: (event.clientX - rect.left) / rect.width, v: (event.clientY - rect.top) / rect.height,
+        width: logo.offsetWidth, height: logo.offsetHeight, nodeHeight: node.offsetHeight,
+      };
       yawSpeed = 0;
       pitchSpeed = 0;
+      viewYawSpeed = 0;
+      viewPitchSpeed = 0;
       surface.dataset.dragging = 'true';
       event.preventDefault();
     };
     const moveDrag = (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.id) return;
-      const dx = (event.clientX - drag.x) * 0.006;
-      const dy = (drag.y - event.clientY) * 0.006;
-      const elapsed = Math.max(event.timeStamp - drag.time, 8);
-      phase.current.yaw += dx;
-      phase.current.pitch += dy;
-      yawSpeed = Math.max(-0.0038, Math.min(0.0038, dx / elapsed));
-      pitchSpeed = Math.max(-0.0038, Math.min(0.0038, dy / elapsed));
-      drag = { id: drag.id, x: event.clientX, y: event.clientY, time: event.timeStamp };
+      const selected = drag;
+      const elapsed = Math.max(event.timeStamp - selected.time, 8);
+      const continueRotation = () => {
+        const radius = Math.max(getRadius(), 1);
+        const yaw = (event.clientX - selected.x) / radius;
+        const pitch = (selected.y - event.clientY) / (radius * 0.78);
+        rotateView(yaw, pitch);
+        yawSpeed = defaultSpeed;
+        pitchSpeed = 0;
+        viewYawSpeed = Math.max(-0.0038, Math.min(0.0038, yaw / elapsed));
+        viewPitchSpeed = Math.max(-0.0038, Math.min(0.0038, pitch / elapsed));
+        selected.x = event.clientX;
+        selected.y = event.clientY;
+        selected.time = event.timeStamp;
+        render();
+      };
+      if (selected.freeRotation) {
+        continueRotation();
+        return;
+      }
+      const box = element.getBoundingClientRect();
+      const targetX = event.clientX - box.left;
+      const targetY = event.clientY - box.top;
+      const grabPoint = (yaw: number, pitch: number) => {
+        const projection = project(points[selected.index], yaw, pitch);
+        return {
+          x: projection.px + (selected.u - 0.5) * selected.width * projection.scale,
+          y: projection.py + (selected.v * selected.height - selected.nodeHeight) * projection.scale,
+        };
+      };
+      const initial = { yaw: phase.current.yaw, pitch: phase.current.pitch };
+      let yaw = initial.yaw;
+      let pitch = initial.pitch;
+      let best = { yaw, pitch, error: Infinity };
+      // Solve in screen space, including perspective and the actual grab point in the logo.
+      for (let iteration = 0; iteration < 12; iteration++) {
+        const point = grabPoint(yaw, pitch);
+        const ex = targetX - point.x;
+        const ey = targetY - point.y;
+        const error = Math.hypot(ex, ey);
+        if (error < best.error) best = { yaw, pitch, error };
+        if (error < 0.02) break;
+        const epsilon = 0.0001;
+        const horizontal = grabPoint(yaw + epsilon, pitch);
+        const vertical = grabPoint(yaw, pitch + epsilon);
+        const jx = (horizontal.x - point.x) / epsilon;
+        const jy = (horizontal.y - point.y) / epsilon;
+        const kx = (vertical.x - point.x) / epsilon;
+        const ky = (vertical.y - point.y) / epsilon;
+        const a = jx * jx + jy * jy + 0.001;
+        const b = jx * kx + jy * ky;
+        const c = kx * kx + ky * ky + 0.001;
+        const determinant = a * c - b * b;
+        const horizontalError = jx * ex + jy * ey;
+        const verticalError = kx * ex + ky * ey;
+        yaw += Math.max(-0.25, Math.min(0.25, (c * horizontalError - b * verticalError) / determinant));
+        pitch += Math.max(-0.25, Math.min(0.25, (a * verticalError - b * horizontalError) / determinant));
+      }
+      // Beyond the reachable projection, keep following captured pointer deltas until release.
+      if (best.error > 1) {
+        selected.freeRotation = true;
+        continueRotation();
+        return;
+      }
+      phase.current.yaw = best.yaw;
+      phase.current.pitch = best.pitch;
+      yawSpeed = Math.max(-0.0038, Math.min(0.0038, (best.yaw - initial.yaw) / elapsed));
+      pitchSpeed = Math.max(-0.0038, Math.min(0.0038, (best.pitch - initial.pitch) / elapsed));
+      selected.x = event.clientX;
+      selected.y = event.clientY;
+      selected.time = event.timeStamp;
       render();
     };
     const finishDrag = (event: PointerEvent) => {
@@ -142,6 +250,8 @@ export default function TechnologySphere() {
       if (event.timeStamp - drag.time > 100) {
         yawSpeed = defaultSpeed;
         pitchSpeed = 0;
+        viewYawSpeed = 0;
+        viewPitchSpeed = 0;
       }
       stopDrag();
       syncAnimation();
@@ -151,18 +261,26 @@ export default function TechnologySphere() {
       stopDrag();
       yawSpeed = defaultSpeed;
       pitchSpeed = 0;
+      viewYawSpeed = 0;
+      viewPitchSpeed = 0;
     };
     const rotateWithKeyboard = (event: KeyboardEvent) => {
+      if (event.code === 'Space' || event.key === ' ') {
+        event.preventDefault();
+        if (!event.repeat) setPaused(previous => !previous);
+        return;
+      }
       const directions: Record<string, [number, number]> = {
         ArrowLeft: [-0.14, 0], ArrowRight: [0.14, 0], ArrowUp: [0, 0.14], ArrowDown: [0, -0.14],
       };
       const direction = directions[event.key];
       if (!direction) return;
       event.preventDefault();
-      phase.current.yaw += direction[0];
-      phase.current.pitch += direction[1];
+      rotateView(direction[0], direction[1]);
       yawSpeed = defaultSpeed;
       pitchSpeed = 0;
+      viewYawSpeed = 0;
+      viewPitchSpeed = 0;
       render();
     };
     const updateVisibility = () => {
@@ -209,7 +327,7 @@ export default function TechnologySphere() {
   }, [paused]);
 
   return (
-    <div ref={container} className="technology-sphere" role="region" aria-label={ui.technologies}>
+    <div ref={container} className="technology-sphere" role="region" aria-label={ui.technologies} data-paused={paused}>
       <svg className="technology-sphere__connections" aria-hidden="true" focusable="false">
         {technologyLogos.map(logo => (
           <g key={logo.name}>
@@ -226,9 +344,7 @@ export default function TechnologySphere() {
       </ul>
       <div className="technology-sphere__interaction" role="group" tabIndex={0} aria-label={ui.rotateSphere} aria-describedby="technology-sphere-hint" />
       <p className="visually-hidden" id="technology-sphere-hint">{ui.rotateSphereHint}</p>
-      <button type="button" className="technology-sphere__pause" aria-pressed={paused} onClick={() => setPaused(previous => !previous)}>
-        {paused ? ui.resumeRotation : ui.pauseRotation}
-      </button>
+      <p className="visually-hidden" role="status">{paused ? ui.rotationPaused : ui.rotationRunning}</p>
     </div>
   );
 }

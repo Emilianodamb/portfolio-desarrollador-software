@@ -16,9 +16,11 @@
 
 :root {
   overflow-x: hidden;
+  scroll-behavior: smooth;
   color-scheme: light;
-  --color-background: #faf5ee;
-  --color-surface: #f3ede4;
+  --color-background: #fff;
+  --color-surface: #fff;
+  --color-chrome: #fff;
   --color-card: #fff;
   --color-text: #181513;
   --color-muted: #655b53;
@@ -33,6 +35,7 @@
   color-scheme: dark;
   --color-background: #111111;
   --color-surface: #1a1a1a;
+  --color-chrome: #111111;
   --color-card: #000000;
   --color-text: #ffffff;
   --color-muted: #bfbfbf;
@@ -137,6 +140,9 @@ section {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
   a {
     transition: none;
   }
@@ -193,7 +199,7 @@ section {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--color-background);
+  background: var(--color-chrome);
   border-bottom: 1px solid var(--color-border);
 }
 .site-header__inner {
@@ -357,6 +363,11 @@ section {
 .cv-modal::backdrop {
   background: rgb(0 0 0 / 65%);
 }
+.cv-modal__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
 .cv-modal__options {
   display: flex;
   gap: 20px;
@@ -426,7 +437,7 @@ section {
 }
 .hero__portrait {
   aspect-ratio: 1;
-  border-radius: var(--card-radius);
+  border-radius: 100px 100px 0 100px;
   background: var(--color-surface);
   overflow: hidden;
 }
@@ -438,11 +449,14 @@ section {
 }
 
 .section {
-  padding: 80px 28px;
+  padding: 96px 28px;
+  border-top: 3px solid var(--color-accent);
 }
 .section--alternate {
   background: var(--color-surface);
-  border-block: 1px solid var(--color-border);
+}
+#habilidades {
+  padding-bottom: 0;
 }
 .section__inner {
   max-width: calc(var(--page-width) - 56px);
@@ -473,6 +487,8 @@ section {
   letter-spacing: -0.055em;
   text-transform: uppercase;
   user-select: none;
+  touch-action: pan-y;
+  cursor: grab;
 }
 .section-marquee__track {
   display: flex;
@@ -502,17 +518,18 @@ section {
 }
 .projects__other {
   margin-top: 80px;
+  padding-top: 32px;
 }
 .projects__subtitle {
+  width: fit-content;
+  max-width: 100%;
+  border-top: 2px solid var(--color-muted);
+  padding-top: 11.2px;
   font-size: clamp(2.4rem, 4.3vw, 4.2rem);
   line-height: 1.1;
   letter-spacing: -0.035em;
   text-transform: uppercase;
   margin-bottom: 32px;
-}
-.education__subtitle {
-  font-size: 1.4rem;
-  margin-bottom: 24px;
 }
 .project-card {
   display: grid;
@@ -522,9 +539,15 @@ section {
   gap: 32px;
   background: transparent;
   border: 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 3px solid rgb(0 0 0 / 20%);
   border-radius: 0;
   padding: 32px 0;
+}
+[data-project-group] > .project-card:last-child {
+  border-bottom: 0;
+}
+:root[data-theme="dark"] .project-card {
+  border-bottom-color: rgb(255 255 255 / 35%);
 }
 .project-card__content {
   grid-area: content;
@@ -572,7 +595,6 @@ section {
   gap: 12px 20px;
   flex-shrink: 0;
   font-size: 0.85rem;
-  color: var(--color-accent);
 }
 .project-card__links a {
   max-width: 100%;
@@ -642,9 +664,10 @@ section {
   filter: invert(1);
 }
 .technology-logo--mixed {
-  padding: 6px;
-  border-radius: 4px;
-  background: #191919;
+  filter: brightness(0);
+}
+:root[data-theme="dark"] .technology-logo--mixed {
+  filter: none;
 }
 .technology-list__text {
   color: var(--color-muted);
@@ -652,10 +675,15 @@ section {
 }
 .technology-sphere {
   position: relative;
+  isolation: isolate;
   width: 100vw;
-  height: clamp(560px, 75vw, 1000px);
+  height: calc(clamp(560px, 75vw, 1000px) + 320px);
   margin: 56px calc(50% - 50vw) 0;
   overflow: hidden;
+  background: #fff;
+  color: #000;
+}
+:root[data-theme="dark"] .technology-sphere {
   background: #111;
   color: #fff;
 }
@@ -670,15 +698,15 @@ section {
   pointer-events: none;
 }
 .technology-sphere__line {
-  stroke: #fff;
+  stroke: currentColor;
   stroke-width: 0.6px;
 }
 .technology-sphere__dot,
 .technology-sphere__center {
-  fill: #fff;
+  fill: currentColor;
 }
 .technology-sphere__center {
-  filter: drop-shadow(0 0 6px rgb(255 255 255 / 65%));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 65%, transparent));
 }
 .technology-sphere__logos {
   padding: 0;
@@ -690,7 +718,7 @@ section {
   position: absolute;
   top: 0;
   left: 0;
-  width: 84px;
+  width: 168px;
   padding-bottom: 4px;
   transform-origin: center bottom;
   opacity: 0;
@@ -705,26 +733,7 @@ section {
 }
 .technology-sphere .technology-logo {
   width: 100%;
-  height: 44px;
-}
-.technology-sphere .technology-logo--light {
-  filter: none;
-}
-.technology-sphere .technology-logo--dark {
-  filter: invert(1);
-}
-.technology-sphere__pause {
-  position: absolute;
-  z-index: 200;
-  top: 16px;
-  right: max(20px, 10vw);
-  min-height: 44px;
-  padding: 8px 14px;
-  border: 1px solid #555;
-  border-radius: 24px;
-  background: #111;
-  color: #fff;
-  font-size: 0.8rem;
+  height: 88px;
 }
 .technology-sphere__interaction {
   position: absolute;
@@ -747,6 +756,9 @@ section {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 56px;
 }
+.skills__groups .content-section__title {
+  text-transform: uppercase;
+}
 .education,
 .education__courses,
 .education__aside {
@@ -756,6 +768,15 @@ section {
 .content-section {
   padding: 32px 0;
   border-top: 1px solid var(--color-border);
+}
+.content-section--institution {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(88px, 18vw, 200px);
+  gap: clamp(16px, 3vw, 40px);
+  align-items: center;
+}
+.content-section__body {
+  min-width: 0;
 }
 .content-section__title {
   font-size: clamp(1.5rem, 2.5vw, 2.25rem);
@@ -777,15 +798,15 @@ section {
   gap: 10px;
 }
 
-.experience {
-  border-top: 1px solid var(--color-border);
-}
 .experience__entry {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 48px;
   padding: 44px 0;
   border-bottom: 1px solid var(--color-border);
+}
+.experience__entry:last-child {
+  border-bottom: 0;
 }
 .experience__company {
   font-size: clamp(2rem, 3vw, 3rem);
@@ -815,24 +836,32 @@ section {
 .education__subtitle {
   padding: 0;
   margin: 0 0 20px;
-  font-size: 1.25rem;
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
   color: var(--color-accent);
 }
+.education__main > .content-section .content-section__category {
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+}
+.education__main > .content-section {
+  grid-template-columns: minmax(0, 1fr) clamp(112px, 22vw, 240px);
+}
+.education__main > .content-section .education__logo {
+  height: 96px;
+}
 .education__certifications {
-  border-top: 1px solid var(--color-border);
-  padding-top: 32px;
+  padding-top: 64px;
 }
 .education__courses > .content-section:first-child {
   border-top: 0;
 }
 .education__logo {
   display: block;
-  width: 200px;
+  width: 100%;
   max-width: 100%;
   height: 72px;
   object-fit: contain;
-  object-position: left center;
-  margin-bottom: 20px;
+  object-position: right center;
+  justify-self: end;
 }
 .contact {
   display: grid;
@@ -851,7 +880,6 @@ section {
   flex-wrap: wrap;
   gap: 24px;
   margin-top: 24px;
-  color: var(--color-accent);
   font-size: 0.9rem;
 }
 .contact__invitation {
@@ -865,13 +893,9 @@ section {
 .contact__invitation p {
   color: var(--color-muted);
 }
-.contact__note {
-  font-size: 0.8rem;
-}
 .site-footer {
-  max-width: var(--page-width);
-  padding: 28px 28px 80px;
-  margin: auto;
+  padding: 28px calc((100% - var(--page-width)) / 2 + 28px) 80px;
+  background: var(--color-chrome);
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -974,6 +998,7 @@ section {
     width: 100%;
     max-width: 320px;
     aspect-ratio: 4 / 3;
+    border-radius: 30px 30px 0 30px;
   }
   .section {
     padding: 56px 20px;
@@ -997,10 +1022,10 @@ section {
     height: 100svh;
   }
   .technology-sphere__node {
-    width: 68px;
+    width: 136px;
   }
   .technology-sphere .technology-logo {
-    height: 36px;
+    height: 72px;
   }
   .project-card__details,
   .experience__entry,
@@ -1014,20 +1039,18 @@ section {
   }
   .site-footer {
     flex-direction: column;
-    padding: 24px 20px 80px;
+    padding: 24px calc((100% - var(--page-width)) / 2 + 20px) 80px;
   }
 }
 
 @media (max-width: 640px) and (orientation: portrait) {
   .hero__portrait {
     max-width: 100%;
+    border-radius: 30px 30px 0 30px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .technology-sphere__pause {
-    display: none;
-  }
   .section-marquee {
     font-size: clamp(1.75rem, 9vw, 8rem);
   }

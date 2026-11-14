@@ -23,6 +23,8 @@ test('built portfolio includes all reference sections and ten open project rows'
   }
   assert.equal((html.match(/class="project-card"/g) ?? []).length, 10);
   assert.ok(html.includes('lang="es"'));
+  assert.ok(html.includes('data-theme="dark"'), 'Server-rendered HTML must start in dark mode');
+  assert.match(html, /<meta name="theme-color" content="#111111"/);
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1);
   assert.ok(html.includes('id="cv-download"'));
   assert.ok(html.includes('href="/cv/es.pdf"'));
@@ -33,6 +35,11 @@ test('built portfolio includes all reference sections and ten open project rows'
   assert.ok(!html.includes('<form'));
   assert.ok(html.includes('astro-island'));
   assert.ok(!html.includes('cdn.tailwindcss.com'));
+});
+
+test('technology globe has no visible rotation pause button', async () => {
+  const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  assert.ok(!html.includes('class="technology-sphere__pause"'));
 });
 
 test('both CV downloads use their corresponding root CV source files', async () => {

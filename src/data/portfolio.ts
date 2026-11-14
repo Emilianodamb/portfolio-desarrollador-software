@@ -26,6 +26,7 @@ export interface Project {
   group: 'featured' | 'training';
   action: 'site' | 'application' | 'demo' | 'video';
   showUrl?: boolean;
+  repositoryUrl?: string;
   technologies: string[];
   description: string;
   contribution?: string;
@@ -91,6 +92,7 @@ export const projects: Project[] = [
     technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
     description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito, flujo de pedido, checkout y base de datos NoSQL. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore. Este proyecto formó parte del trabajo final del curso de React en Coderhouse.',
     url: 'https://proyecto-coderhouse-react.vercel.app/',
+    repositoryUrl: 'https://github.com/Emilianodamb/proyecto-coderhouse-react',
   },
   {
     title: 'Ferretería Online',
@@ -99,8 +101,9 @@ export const projects: Project[] = [
     group: 'training',
     action: 'demo',
     technologies: ['HTML', 'CSS', 'JavaScript', 'Git', 'GitHub', 'Visual Studio Code'],
-    description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página.',
+    description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript Vanilla para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página. Este proyecto fue el trabajo final del curso de Javascript de Coderhouse y fue la primera vez que desarrollé con un lenguaje de programación web.',
     url: 'https://java-script-theta.vercel.app/',
+    repositoryUrl: 'https://github.com/Emilianodamb/ferreteria-online',
   },
   {
     title: 'Andes Xtreme',
@@ -109,8 +112,9 @@ export const projects: Project[] = [
     group: 'training',
     action: 'site',
     technologies: ['HTML', 'CSS', 'Bootstrap', 'Sass', 'Git', 'GitHub', 'Visual Studio Code'],
-    description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM.',
+    description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM. Este proyecto fue el trabajo final del curso de desarrollo web de Coderhouse y fue mi primer desarrollo web y el punto de partida de mi carrera en tecnología.',
     url: 'https://andesxtreme.netlify.app/',
+    repositoryUrl: 'https://github.com/Emilianodamb/andesXtreme',
   },
 ];
 
@@ -122,12 +126,14 @@ export const otherProjects: DisplayProject[] = [
     description: 'Desarrollé un juego de trivia multijugador para terminal. Usé listas enlazadas, memoria dinámica y archivos para persistir datos entre ejecuciones.',
     technologies: ['C', 'Code::Blocks'],
     action: 'video', url: 'https://lnkd.in/p/dSdJyh5F',
+    repositoryUrl: 'https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION',
   },
   {
     title: 'Sistema de temporización en Assembler', image: assembler, category: 'Proyecto universitario',
-    description: 'Implementé un sistema de temporización en Assembler para el PIC16F84A, con control de displays y manejo de interrupciones.',
+    description: 'Implementé un sistema de temporización en Assembler para el PIC16F84A, con control de displays y manejo de interrupciones. Este proyecto formó parte del trabajo final de la materia Arquitectura de computadoras, simula la detonación de una bomba y usa un lenguaje de bajo nivel de abstracción.',
     technologies: ['Proteus', 'MPLAB', 'C'],
     action: 'video', url: 'https://lnkd.in/p/dXZXnC-8',
+    repositoryUrl: 'https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS',
   },
   {
     title: 'Eventyfier', image: eventyfier, category: 'Proyecto de formación',
@@ -137,8 +143,27 @@ export const otherProjects: DisplayProject[] = [
 ];
 
 export const experiences = [
-  { company: 'Aureq', startYear: 2026, endYear: null, role: 'Desarrollador web freelance', description: 'Desarrollo de sitios web y soluciones digitales para comercios y profesionales.', items: ['Relevamiento de necesidades y desarrollo de interfaces.', 'Gestión de dominios, despliegue y mantenimiento de sitios.'] },
-  { company: 'Total Mecánica', startYear: 2024, endYear: 2026, role: 'Desarrollo y digitalización de procesos', description: 'Herramientas web para la presencia digital y la operación del taller.', items: ['Desarrollo del sitio institucional y la aplicación de historial vehicular.', 'Integración de datos históricos y herramientas de consulta.'] },
+  {
+    company: 'Aureq', startYear: 2026, endYear: null, role: 'Desarrollador web freelance',
+    description: 'Desarrollo de sitios web y soluciones digitales para comercios y profesionales.',
+    items: [
+      'Gestiono el contacto con clientes, la prospección y las ventas; relevo necesidades y preparo propuestas definiendo el alcance de cada proyecto.',
+      'Diseño e implemento sitios y aplicaciones web para comercios y profesionales, desde la organización del contenido y las interfaces hasta su publicación.',
+      'Redacto textos comerciales y contenidos web —copywriting— para comunicar servicios y facilitar las consultas.',
+      'Gestiono hosting y dominios contratados a proveedores externos, junto con el mantenimiento técnico y la actualización de los sitios.',
+      'Desarrollé y publiqué aureq.com.ar para presentar los servicios del emprendimiento y facilitar el contacto',
+    ],
+  },
+  {
+    company: 'Total Mecánica', startYear: 2024, endYear: 2026, role: 'Desarrollo y digitalización de procesos',
+    description: 'Herramientas web para la presencia digital y la operación del taller.',
+    items: [
+      'Desarrollé una aplicación de historial vehicular con React, JavaScript y Tailwind CSS, con búsquedas e integración de Firestore y Firebase Authentication.',
+      'Migré más de 3.000 registros desde el sistema anterior y publiqué la aplicación en Vercel; está en uso y permite consultar y actualizar información desde distintos dispositivos.',
+      'Desarrollé y publiqué el sitio institucional del taller, trabajando sobre contenidos, diseño adaptable, dominio, alojamiento y SEO técnico inicial.',
+      'Trabajé en el desarrollo del frontend de un MVP de ERP/CRM con React y TypeScript, con tableros para consultas y órdenes de trabajo y vistas orientadas a los roles del taller.',
+    ],
+  },
 ];
 
 export const skillGroups = [

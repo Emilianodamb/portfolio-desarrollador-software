@@ -90,6 +90,13 @@ test('React preferences and bilingual CV downloads work in a browser', {
       return result.result.value;
     };
     const click = (id) => evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
+    const spherePaused = () => evaluate("document.querySelector('.technology-sphere').dataset.paused");
+    const toggleSpherePause = async () => {
+      await evaluate("document.querySelector('.technology-sphere__interaction').focus({preventScroll:true})");
+      await send('Input.dispatchKeyEvent', {type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32});
+      await send('Input.dispatchKeyEvent', {type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+      await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    };
     const sphereHitPoint = (layer = 'front') => evaluate(`(() => {
       const root = document.querySelector('.technology-sphere');
       const boxes = Array.from(root.querySelectorAll('.technology-sphere__node'), node => ({ node, image:node.querySelector('img'), rect:node.querySelector('img').getBoundingClientRect() }));
@@ -115,7 +122,27 @@ test('React preferences and bilingual CV downloads work in a browser', {
     await send('Runtime.enable');
     await send('Page.enable');
     await send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
-    await waitFor(() => evaluate("!!document.querySelector('astro-island:not([ssr])') && document.documentElement.dataset.theme === 'light'"), 'React did not hydrate');
+    await waitFor(() => evaluate("!!document.querySelector('astro-island:not([ssr])') && !!document.documentElement.dataset.theme"), 'React did not hydrate');
+
+    await t.test('every load starts dark even after selecting light while invalid storage falls back safely', async () => {
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark');
+      assert.equal(await evaluate("document.getElementById('theme-toggle').getAttribute('aria-checked')"), 'true');
+      assert.equal(await evaluate("document.querySelector('meta[name=theme-color]').content"), '#111111');
+      await click('theme-toggle');
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), 'light');
+      await send('Page.reload');
+      await waitFor(() => evaluate("!!document.querySelector('astro-island:not([ssr])')"), 'Page did not hydrate after reload');
+      await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark', 'A saved light choice must not override the dark startup theme');
+      assert.equal(await evaluate("document.getElementById('theme-toggle').getAttribute('aria-checked')"), 'true');
+      for (const saved of ['{"theme":"unknown","language":"es"}', 'not valid JSON']) {
+        await evaluate(`localStorage.setItem('portfolio-preferences', ${JSON.stringify(saved)})`);
+        await send('Page.reload');
+        await waitFor(() => evaluate("!!document.querySelector('astro-island:not([ssr])') && document.documentElement.dataset.theme === 'dark'"), 'Invalid preference data must fall back to dark');
+      }
+      await click('theme-toggle');
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), 'light');
+    });
 
     await t.test('cursor circle follows the mouse and inverts underlying pixels without blocking interaction', async () => {
       await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
@@ -210,7 +237,7 @@ test('React preferences and bilingual CV downloads work in a browser', {
 
     await t.test('links underline and grow slightly on mouse hover without changing their layout footprint', async () => {
       for (const selector of ['.site-header__link', '.hero__socials a', '.project-card__links a']) {
-        await evaluate(`document.querySelector('${selector}').scrollIntoView({ block: 'center' })`);
+        await evaluate(`document.querySelector('${selector}').scrollIntoView({ block: 'center', behavior: 'instant' })`);
         const bounds = await evaluate(`(() => {
           const element = document.querySelector('${selector}');
           const rect = element.getBoundingClientRect();
@@ -222,8 +249,58 @@ test('React preferences and bilingual CV downloads work in a browser', {
         assert.equal(await evaluate(`document.querySelector('${selector}').offsetWidth`), bounds.width);
         assert.equal(await evaluate(`getComputedStyle(document.querySelector('${selector}')).cursor`), 'none');
       }
-      await evaluate('window.scrollTo(0, 0)');
+      await evaluate("window.scrollTo({top:0, behavior:'instant'})");
       await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 10, y: 150 });
+    });
+
+    await t.test('external text links use neutral text colors and turn orange only on hover', async () => {
+      const originalTheme = await evaluate('document.documentElement.dataset.theme');
+      try {
+        for (const theme of ['dark', 'light']) {
+          if (await evaluate('document.documentElement.dataset.theme') !== theme) await click('theme-toggle');
+          await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 150 });
+          const expected = theme === 'dark' ? 'rgb(255, 255, 255)' : await evaluate('getComputedStyle(document.body).color');
+          assert.ok(await evaluate(`Array.from(document.querySelectorAll('.hero__socials a, .project-card__links a, .contact__links a')).every(link => getComputedStyle(link).color === '${expected}')`), `${theme}: external text links must not be orange at rest`);
+          for (const selector of ['.hero__socials a', '.project-card__links a', '.contact__links a']) {
+            await evaluate(`document.querySelector('${selector}').scrollIntoView({block:'center',behavior:'instant'})`);
+            const point = await evaluate(`(() => { const r = document.querySelector('${selector}').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+            await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point });
+            await waitFor(() => evaluate(`getComputedStyle(document.querySelector('${selector}')).color === 'rgb(182, 64, 18)'`), `${theme}: hovered link must turn orange`);
+            await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 150 });
+            assert.equal(await evaluate(`getComputedStyle(document.querySelector('${selector}')).color`), expected, 'Leaving hover must restore the neutral link color');
+          }
+        }
+      } finally {
+        if (await evaluate('document.documentElement.dataset.theme') !== originalTheme) await click('theme-toggle');
+        await evaluate("window.scrollTo({top:0, behavior:'instant'})");
+      }
+    });
+
+    await t.test('light content, header and footer use one pure-white background', async () => {
+      const originalTheme = await evaluate('document.documentElement.dataset.theme');
+      try {
+        if (originalTheme !== 'light') await click('theme-toggle');
+        for (const [width, height] of [[1280, 900], [390, 844]]) {
+          await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:1, mobile:false });
+          assert.equal(await evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(255, 255, 255)');
+          assert.ok(await evaluate(`Array.from(document.querySelectorAll('main, main > section, .hero__portrait, .technology-sphere')).every(node => {
+            let surface = node;
+            while (surface && getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)') surface = surface.parentElement;
+            return surface && getComputedStyle(surface).backgroundColor === 'rgb(255, 255, 255)';
+          })`), 'Every main section must resolve to pure white rather than alternating creams');
+          assert.ok(await evaluate(`['.site-header', '.site-footer'].every(selector => {
+            const element = document.querySelector(selector); const rect = element.getBoundingClientRect();
+            return getComputedStyle(element).backgroundColor === 'rgb(255, 255, 255)' && Math.abs(rect.left) <= 1 && Math.abs(rect.width - document.documentElement.clientWidth) <= 1;
+          })`), 'The full-width header and footer must match the pure-white content background');
+          assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
+        }
+        await click('theme-toggle');
+        assert.deepEqual(await evaluate("['body', '.site-header', '.site-footer'].map(selector => getComputedStyle(document.querySelector(selector)).backgroundColor)"), Array(3).fill('rgb(17, 17, 17)'));
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.section--alternate')).backgroundColor"), 'rgb(26, 26, 26)', 'Dark surfaces must keep their existing palette');
+      } finally {
+        if (await evaluate('document.documentElement.dataset.theme') !== originalTheme) await click('theme-toggle');
+        await send('Emulation.setDeviceMetricsOverride', { width:1280, height:900, deviceScaleFactor:1, mobile:false });
+      }
     });
 
     await t.test('header has equal-width brand lines and soft accessible switches without a contact button', async () => {
@@ -252,6 +329,84 @@ test('React preferences and bilingual CV downloads work in a browser', {
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
       }
       await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+    });
+
+    await t.test('sticky header stays above foreground globe logos while scrolling on desktop and mobile', async () => {
+      const wasPaused = await spherePaused();
+      if (wasPaused !== 'true') await toggleSpherePause();
+      try {
+        for (const [width, height] of [[1280, 900], [390, 844]]) {
+          await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+          await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'}); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+          await evaluate("Promise.all(Array.from(document.querySelectorAll('.technology-sphere img'), image => {image.loading='eager'; return image.decode();}))");
+          const index = await evaluate(`(() => {
+            const nodes = Array.from(document.querySelectorAll('.technology-sphere__node'));
+            const index = nodes.findIndex(node => {
+              const rect = node.querySelector('img').getBoundingClientRect();
+              return node.dataset.front === 'true' && rect.x + rect.width / 2 > 20 && rect.x + rect.width / 2 < innerWidth - 20;
+            });
+            if (index < 0) throw new Error('No foreground logo available for header overlap');
+            const image = nodes[index].querySelector('img').getBoundingClientRect();
+            const header = document.querySelector('.site-header').getBoundingClientRect();
+            window.scrollTo({top:scrollY + image.y + image.height / 2 - header.height / 2,behavior:'instant'});
+            return index;
+          })()`);
+          await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          assert.ok(await evaluate(`(() => {
+            const image = document.querySelectorAll('.technology-sphere__node')[${index}].querySelector('img').getBoundingClientRect();
+            const header = document.querySelector('.site-header');
+            const rect = header.getBoundingClientRect();
+            const x = image.x + image.width / 2; const y = image.y + image.height / 2;
+            return rect.top === 0 && y > rect.top && y < rect.bottom && header.contains(document.elementFromPoint(x, y));
+          })()`), `${width}px: a logo overlapping the sticky header must stay behind it and not intercept its controls`);
+        }
+      } finally {
+        await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+        if (wasPaused !== 'true') await toggleSpherePause();
+        await evaluate("window.scrollTo({top:0, behavior:'instant'})");
+      }
+    });
+
+    await t.test('header anchor navigation scrolls fluidly and respects reduced motion', async () => {
+      try {
+        await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion',value:'no-preference'}] });
+        for (const [width, height] of [[1280,900],[390,844]]) {
+          await send('Emulation.setDeviceMetricsOverride', { width,height,deviceScaleFactor:1,mobile:false });
+          for (const section of ['proyectos', 'experiencia']) {
+            await evaluate("window.scrollTo({top:0,behavior:'instant'}); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+            const movement = await evaluate(`(async () => {
+              const section = document.getElementById('${section}');
+              const target = section.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(section).scrollMarginTop);
+              const start = scrollY; const started = performance.now(); const samples = [];
+              document.querySelector('.site-header a[href="#${section}"]').click();
+              return await new Promise(resolve => {
+                const sample = () => {
+                  samples.push(scrollY);
+                  if (Math.abs(scrollY - target) <= 2 || performance.now() - started > 3000) resolve({start,target,samples,hash:location.hash});
+                  else requestAnimationFrame(sample);
+                };
+                requestAnimationFrame(sample);
+              });
+            })()`);
+            assert.equal(movement.hash, `#${section}`, 'Native anchors must retain their URL destination');
+            assert.ok(Math.abs(movement.samples.at(-1) - movement.target) <= 2, `Navigation must reach its section promptly: ${JSON.stringify({width,section,target:movement.target,last:movement.samples.at(-1),currentTarget:await evaluate(`document.getElementById('${section}').getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(document.getElementById('${section}')).scrollMarginTop)`)})}`);
+            assert.ok(movement.samples.some(y => y > movement.start + 2 && y < movement.target - 2), `${width}px: navigation must include intermediate positions instead of jumping`);
+          }
+        }
+        await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion',value:'reduce'}] });
+        await evaluate("window.scrollTo({top:0,behavior:'instant'})");
+        assert.equal(await evaluate('getComputedStyle(document.documentElement).scrollBehavior'), 'auto');
+        assert.ok(await evaluate(`(() => {
+          const section = document.getElementById('proyectos');
+          const target = section.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(section).scrollMarginTop);
+          document.querySelector('.site-header a[href="#proyectos"]').click();
+          return Math.abs(scrollY - target) <= 2;
+        })()`), 'Reduced-motion navigation must reach its destination without animation');
+      } finally {
+        await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion',value:'no-preference'}] });
+        await send('Emulation.setDeviceMetricsOverride', { width:1280,height:900,deviceScaleFactor:1,mobile:false });
+        await evaluate("history.replaceState(null,'',location.pathname + location.search); window.scrollTo({top:0,behavior:'instant'})");
+      }
     });
 
     await t.test('WhatsApp tab reveals a contact link and closes with Escape while restoring focus', async () => {
@@ -299,8 +454,105 @@ test('React preferences and bilingual CV downloads work in a browser', {
           const previous = section.previousElementSibling;
           return section.querySelector('.projects__subtitle').getBoundingClientRect().top - previous.getBoundingClientRect().bottom >= 76;
         })`), 'Training and other headings must be spaced farther from the preceding projects');
-        assert.ok(await evaluate("Array.from(document.querySelectorAll('[data-project-group]')).every(group => getComputedStyle(group.lastElementChild).borderBottomWidth === '1px')"), 'Every subsection must end with a separator');
+        assert.ok(await evaluate("Array.from(document.querySelectorAll('[data-project-group]')).every(group => getComputedStyle(group.lastElementChild).borderBottomWidth === '0px')"), 'Subsection endpoints must not have a trailing separator');
+        assert.ok(await evaluate(`Array.from(document.querySelectorAll('.projects__subtitle')).every(heading => {
+          const range = document.createRange(); range.selectNodeContents(heading);
+          const style = getComputedStyle(heading);
+          return style.borderTopStyle === 'solid' && style.borderTopWidth === '2px' && Math.abs(parseFloat(style.paddingTop) - 11.2) < 0.01 &&
+            Math.abs(heading.getBoundingClientRect().width - range.getBoundingClientRect().width) <= 1;
+        })`), 'Each group heading must have a solid top rule matching its text width');
       }
+    });
+
+    await t.test('sections, subsections and entries use visibly different separator levels', async () => {
+      const styles = await evaluate(`(() => {
+        const main = getComputedStyle(document.getElementById('proyectos'));
+        const subsection = getComputedStyle(document.querySelector('.projects__other'));
+        const item = getComputedStyle(document.querySelector('.project-card'));
+        return [main.borderTopWidth, main.borderTopStyle, subsection.borderTopWidth, subsection.borderTopStyle, item.borderBottomWidth, item.borderBottomStyle];
+      })()`);
+      assert.deepEqual(styles, ['3px','solid','0px','none','3px','solid']);
+      assert.ok(await evaluate("Array.from(document.querySelectorAll('[data-project-group] > .project-card:not(:last-child)')).every(item => getComputedStyle(item).borderBottomWidth === '3px')"), 'Between-project separators must be 3px thick');
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.project-card__header')).borderBottomWidth"), '1px', 'The internal project header rule must stay unchanged');
+    });
+
+    await t.test('project separators are translucent white in dark mode and remain legible in light mode', async () => {
+      const originalTheme = await evaluate('document.documentElement.dataset.theme');
+      try {
+        for (const theme of ['dark', 'light']) {
+          if (await evaluate('document.documentElement.dataset.theme') !== theme) await click('theme-toggle');
+          const expected = theme === 'dark' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.2)';
+          assert.ok(await evaluate(`Array.from(document.querySelectorAll('[data-project-group] > .project-card:not(:last-child)')).every(item => getComputedStyle(item).borderBottomColor === '${expected}')`), `${theme}: project separators must use their translucent theme color`);
+          assert.ok(await evaluate("Array.from(document.querySelectorAll('[data-project-group] > .project-card:last-child')).every(item => getComputedStyle(item).borderBottomWidth === '0px')"), 'Terminal project separators must remain absent');
+        }
+      } finally {
+        if (await evaluate('document.documentElement.dataset.theme') !== originalTheme) await click('theme-toggle');
+      }
+    });
+
+    await t.test('title marquees follow manual dragging and resume their original automatic motion', async () => {
+      await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion',value:'no-preference'}] });
+      for (const [width,height] of [[1280,900],[390,844]]) {
+        await send('Emulation.setDeviceMetricsOverride', { width,height,deviceScaleFactor:1,mobile:false });
+        await evaluate("document.querySelector('.section-marquee').scrollIntoView({block:'center',behavior:'instant'})");
+        const point = await evaluate("(() => {const r=document.querySelector('.section-marquee').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()");
+        const position = () => evaluate("new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.section-marquee__track')).transform).m41");
+        await send('Input.dispatchMouseEvent', {type:'mouseMoved',...point});
+        await send('Input.dispatchMouseEvent', {type:'mousePressed',...point,button:'left',clickCount:1});
+        await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+        const period = await evaluate("document.querySelector('.section-marquee__group').getBoundingClientRect().width");
+        const difference = (value) => ((value + period / 2) % period + period) % period - period / 2;
+        try {
+          const start = await position();
+          await send('Input.dispatchMouseEvent', {type:'mouseMoved',x:point.x-80,y:point.y,button:'left',buttons:1});
+          await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          const moved = await position();
+          assert.ok(Math.abs(difference(moved-start)+80)<2, `Marquee text must follow the drag distance: ${JSON.stringify({start,moved,period,point,state:await evaluate("document.querySelector('.section-marquee__track').getAnimations()[0]?.playState")})}`);
+        } finally {
+          await send('Input.dispatchMouseEvent', {type:'mouseReleased',x:point.x-80,y:point.y,button:'left',clickCount:1});
+        }
+        const released = await position();
+        await evaluate('new Promise(resolve => setTimeout(resolve,140))');
+        assert.ok(difference((await position())-released)<-1, 'Automatic leftward marquee motion must resume');
+      }
+      await send('Emulation.setDeviceMetricsOverride', {width:1280,height:900,deviceScaleFactor:1,mobile:false});
+    });
+
+    await t.test('work experiences display every supplied responsibility and its English counterpart', async () => {
+      const spanish = [
+        ['Gestiono el contacto con clientes, la prospección y las ventas; relevo necesidades y preparo propuestas definiendo el alcance de cada proyecto.',
+          'Diseño e implemento sitios y aplicaciones web para comercios y profesionales, desde la organización del contenido y las interfaces hasta su publicación.',
+          'Redacto textos comerciales y contenidos web —copywriting— para comunicar servicios y facilitar las consultas.',
+          'Gestiono hosting y dominios contratados a proveedores externos, junto con el mantenimiento técnico y la actualización de los sitios.',
+          'Desarrollé y publiqué aureq.com.ar para presentar los servicios del emprendimiento y facilitar el contacto'],
+        ['Desarrollé una aplicación de historial vehicular con React, JavaScript y Tailwind CSS, con búsquedas e integración de Firestore y Firebase Authentication.',
+          'Migré más de 3.000 registros desde el sistema anterior y publiqué la aplicación en Vercel; está en uso y permite consultar y actualizar información desde distintos dispositivos.',
+          'Desarrollé y publiqué el sitio institucional del taller, trabajando sobre contenidos, diseño adaptable, dominio, alojamiento y SEO técnico inicial.',
+          'Trabajé en el desarrollo del frontend de un MVP de ERP/CRM con React y TypeScript, con tableros para consultas y órdenes de trabajo y vistas orientadas a los roles del taller.'],
+      ];
+      const snapshot = () => evaluate("Array.from(document.querySelectorAll('.experience__entry'), entry => Array.from(entry.querySelectorAll('.experience__details li'), item => item.textContent))");
+      assert.deepEqual(await snapshot(), spanish);
+      await click('language-toggle');
+      await waitFor(() => evaluate("document.documentElement.lang === 'en'"), 'English experience copy did not apply');
+      const english = await snapshot();
+      assert.deepEqual(english.map(items=>items.length), [5,4]);
+      assert.match(english[0][0], /clients.*prospecting.*sales.*requirements.*proposals.*scope/i);
+      assert.match(english[0][1], /websites.*applications.*businesses.*professionals.*content.*interfaces.*launch/i);
+      assert.match(english[0][2], /copywriting.*services.*inquiries/i);
+      assert.match(english[0][3], /hosting.*domains.*external.*maintenance.*updates/i);
+      assert.match(english[0][4], /aureq.com.ar.*services.*contact/i);
+      assert.match(english[1][0], /React.*JavaScript.*Tailwind CSS.*search.*Firestore.*Firebase Authentication/i);
+      assert.match(english[1][1], /3,000.*Vercel.*in use.*view.*update.*devices/i);
+      assert.match(english[1][2], /website.*content.*responsive.*domain.*hosting.*SEO/i);
+      assert.match(english[1][3], /frontend.*ERP\/CRM.*React.*TypeScript.*dashboards.*inquiries.*work orders.*roles/i);
+      await click('language-toggle');
+      await waitFor(() => evaluate("document.documentElement.lang === 'es'"), 'Spanish experience copy did not restore');
+    });
+
+    await t.test('experience retains only the separator between Aureq and Total Mecánica', async () => {
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.experience')).borderTopWidth"), '0px');
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.experience__entry'), entry => [getComputedStyle(entry).borderTopWidth, getComputedStyle(entry).borderBottomWidth])"), [['0px','1px'],['0px','0px']]);
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.experience__company'), entry => entry.textContent)"), ['Aureq', 'Total Mecánica']);
     });
 
     await t.test('experience entries have prominent headings and the supplied date ranges', async () => {
@@ -413,13 +665,14 @@ test('React preferences and bilingual CV downloads work in a browser', {
         if (width < 640) assert.ok(Math.abs(marquee.height - height) <= 1, 'Mobile sphere must fill the viewport height');
         assert.equal(await evaluate("document.querySelectorAll('.technology-marquee').length"), 0);
         await evaluate("Promise.all(Array.from(document.querySelectorAll('.technology-sphere img'), image => { image.loading = 'eager'; return image.decode(); }))");
-        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center'})");
+        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'})");
         await waitFor(() => evaluate("!!document.querySelector('.technology-sphere__node')?.style.transform"), 'Sphere projection did not initialize');
         const positions = () => evaluate("Array.from(document.querySelectorAll('.technology-sphere__node'), item => item.style.transform)");
         const start = await positions();
         await waitFor(async () => (await positions()).some((value, index) => value !== start[index]), 'Sphere must rotate while visible');
-        await evaluate("document.querySelector('.technology-sphere__pause').click()");
-        assert.equal(await evaluate("document.querySelector('.technology-sphere__pause').getAttribute('aria-pressed')"), 'true');
+        assert.equal(await evaluate("document.querySelectorAll('.technology-sphere button').length"), 0, 'The globe must have no pause button');
+        await toggleSpherePause();
+        assert.equal(await spherePaused(), 'true');
         const stopped = await positions();
         await evaluate('new Promise(resolve => setTimeout(resolve, 120))');
         assert.deepEqual(await positions(), stopped, 'Pause must freeze the globe');
@@ -446,11 +699,12 @@ test('React preferences and bilingual CV downloads work in a browser', {
                 line.getAttribute('x2') === dot.getAttribute('cx') && line.getAttribute('y2') === dot.getAttribute('cy') &&
                 Math.abs(Number(dot.getAttribute('cx')) - Number(nodes[index].dataset.x)) < 0.01 &&
                 Math.abs(Number(dot.getAttribute('cy')) - Number(nodes[index].dataset.y)) < 0.01 &&
-                style.stroke === 'rgb(255, 255, 255)' && getComputedStyle(dot).fill === 'rgb(255, 255, 255)' &&
+                style.stroke === (document.documentElement.dataset.theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)') &&
+                getComputedStyle(dot).fill === style.stroke &&
                 Number(dot.getAttribute('r')) > parseFloat(style.strokeWidth) && gap >= -0.1 && gap <= 9;
             });
         })()`), 'The globe needs enlarged foreground logos, a nearer hub, and a flatter Y silhouette with aligned connections');
-        await evaluate("document.querySelector('.technology-sphere__pause').click()");
+        await toggleSpherePause();
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
       }
       await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -463,9 +717,97 @@ test('React preferences and bilingual CV downloads work in a browser', {
       await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
     });
 
+    await t.test('a captured logo drag continues rotating on both axes outside the globe region without moving its center', async () => {
+      await send('Emulation.setDeviceMetricsOverride', {width:1280,height:900,deviceScaleFactor:1,mobile:false});
+      await evaluate("(() => {const root=document.querySelector('.technology-sphere');scrollTo({top:root.getBoundingClientRect().top+scrollY-280,behavior:'instant'});})()");
+      if (await spherePaused() !== 'true') await toggleSpherePause();
+      await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+      const pose = () => evaluate("Array.from(document.querySelectorAll('.technology-sphere__node'), node => [Number(node.dataset.x),Number(node.dataset.y)])");
+      const center = () => evaluate("(() => {const center=document.querySelector('.technology-sphere__center');return [center.getAttribute('cx'),center.getAttribute('cy')];})()");
+      const initialCenter = await center();
+      const top = await evaluate("document.querySelector('.technology-sphere').getBoundingClientRect().top");
+      const {x,y} = await sphereHitPoint();
+      await send('Input.dispatchMouseEvent', {type:'mouseMoved',x,y});
+      await send('Input.dispatchMouseEvent', {type:'mousePressed',x,y,button:'left',clickCount:1});
+      const targets = [[x,top-30],[x,top-110],[x,top-190],[x,top-270],[x+80,top-270]];
+      let previous;
+      try {
+        for (const [targetX,targetY] of targets) {
+          await send('Input.dispatchMouseEvent', {type:'mouseMoved',x:targetX,y:targetY,button:'left',buttons:1});
+          await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          const current = await pose();
+          if (previous) {
+            const movement = Math.sqrt(current.reduce((total, point,index) => total+(point[0]-previous[index][0])**2+(point[1]-previous[index][1])**2,0)/current.length);
+            assert.ok(movement > 15, `Dragging beyond the region must not freeze at the projected horizon (movement ${movement})`);
+          }
+          assert.equal(await evaluate("document.querySelector('.technology-sphere__interaction').dataset.dragging"), 'true');
+          assert.deepEqual(await center(), initialCenter);
+          previous = current;
+        }
+      } finally {
+        const [endX,endY] = targets.at(-1);
+        await send('Input.dispatchMouseEvent', {type:'mouseReleased',x:endX,y:endY,button:'left',clickCount:1});
+        await toggleSpherePause();
+      }
+      assert.equal(await evaluate("document.querySelector('.technology-sphere__interaction').dataset.dragging"), undefined);
+    });
+
+    await t.test('globe center stays fixed during outward dragging, release and automatic rotation', async () => {
+      for (const [width,height] of [[1280,900],[390,844]]) {
+        await send('Emulation.setDeviceMetricsOverride', {width,height,deviceScaleFactor:1,mobile:false});
+        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'})");
+        if (await spherePaused() !== 'true') await toggleSpherePause();
+        const center = () => evaluate("(() => { const node=document.querySelector('.technology-sphere__center');return [node.getAttribute('cx'),node.getAttribute('cy')];})()");
+        const initial = await center();
+        const {x,y} = await sphereHitPoint();
+        await send('Input.dispatchMouseEvent', {type:'mouseMoved',x,y});
+        await send('Input.dispatchMouseEvent', {type:'mousePressed',x,y,button:'left',clickCount:1});
+        try {
+          await send('Input.dispatchMouseEvent', {type:'mouseMoved',x:width-35,y:height-35,button:'left',buttons:1});
+          await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          assert.deepEqual(await center(), initial, 'Dragging outward may rotate the globe but must never translate its center');
+          assert.ok(await evaluate("Array.from(document.querySelectorAll('.technology-sphere__line')).every(line => line.getAttribute('x1') === document.querySelector('.technology-sphere__center').getAttribute('cx') && line.getAttribute('y1') === document.querySelector('.technology-sphere__center').getAttribute('cy'))"));
+        } finally {
+          await send('Input.dispatchMouseEvent', {type:'mouseReleased',x:width-35,y:height-35,button:'left',clickCount:1});
+          await toggleSpherePause();
+        }
+        await evaluate('new Promise(resolve => setTimeout(resolve,140))');
+        assert.deepEqual(await center(), initial, 'Release inertia must also preserve the center');
+      }
+      await send('Emulation.setDeviceMetricsOverride', {width:1280,height:900,deviceScaleFactor:1,mobile:false});
+    });
+
+    await t.test('the grabbed globe logo stays under the pointer in both axes and logos are twice their former size', async () => {
+      await send('Page.reload');
+      await waitFor(() => evaluate("!!document.querySelector('astro-island:not([ssr])') && !!document.querySelector('.technology-sphere__node')?.style.transform"), 'Fresh globe projection did not initialize');
+      for (const [width,height,nodeWidth,logoHeight] of [[1280,900,168,88],[390,844,136,72]]) {
+        await send('Emulation.setDeviceMetricsOverride', { width,height,deviceScaleFactor:1,mobile:false });
+        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'})");
+        if (await spherePaused() !== 'true') await toggleSpherePause();
+        const {x,y} = await sphereHitPoint();
+        const index = await evaluate(`Array.from(document.querySelectorAll('.technology-sphere__node')).indexOf(document.elementFromPoint(${x},${y}).closest('.technology-sphere__node'))`);
+        await send('Input.dispatchMouseEvent', { type:'mouseMoved',x,y });
+        await send('Input.dispatchMouseEvent', { type:'mousePressed',x,y,button:'left',clickCount:1 });
+        try {
+          for (const [dx,dy] of [[45,0],[35,30],[-25,-20],[0,0]]) {
+            await send('Input.dispatchMouseEvent', { type:'mouseMoved',x:x+dx,y:y+dy,button:'left',buttons:1 });
+            await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+            const point = await evaluate(`(() => { const rect = document.querySelectorAll('.technology-sphere__node')[${index}].querySelector('img').getBoundingClientRect(); return {x:rect.x+rect.width/2,y:rect.y+rect.height/2}; })()`);
+            assert.ok(Math.hypot(point.x-x-dx, point.y-y-dy) < 2, `The grabbed logo must follow the pointer, not drift away: ${JSON.stringify({point,target:{x:x+dx,y:y+dy},dragging:await evaluate("document.querySelector('.technology-sphere__interaction').dataset.dragging")})}`);
+          }
+        } finally {
+          await send('Input.dispatchMouseEvent', { type:'mouseReleased',x,y,button:'left',clickCount:1 });
+          await toggleSpherePause();
+        }
+        assert.equal(await evaluate("parseFloat(getComputedStyle(document.querySelector('.technology-sphere__node')).width)"), nodeWidth);
+        assert.equal(await evaluate("parseFloat(getComputedStyle(document.querySelector('.technology-sphere .technology-logo')).height)"), logoHeight);
+      }
+      await send('Emulation.setDeviceMetricsOverride', { width:1280,height:900,deviceScaleFactor:1,mobile:false });
+    });
+
     await t.test('sphere dragging controls both axes and speed, then smoothly returns to its default rotation', async () => {
       await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-      await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center'})");
+      await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'})");
       assert.ok(await evaluate("!!document.querySelector('.technology-sphere__interaction')"), 'Missing sphere drag surface');
       const pose = () => evaluate("Array.from(document.querySelectorAll('.technology-sphere__node'), node => ({ x:Number(node.dataset.x), y:Number(node.dataset.y), depth:Number(node.dataset.depth) }))");
       const delay = ms => evaluate(`new Promise(resolve => setTimeout(resolve, ${ms}))`);
@@ -478,30 +820,32 @@ test('React preferences and bilingual CV downloads work in a browser', {
         await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x + dx, y: y + dy, button: 'left', buttons: 1 });
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x + dx, y: y + dy, button: 'left', clickCount: 1 });
       };
-      await evaluate("document.querySelector('.technology-sphere__pause').click()");
+      await toggleSpherePause();
       const original = await pose();
       await drag(50, 30, 30, 'air');
       assert.deepEqual(await pose(), original, 'Dragging empty space must not turn the paused globe');
       await drag(50, 30, 30, 'rear');
       assert.deepEqual(await pose(), original, 'Rear-layer logos must not start a drag');
       assert.equal(await evaluate("document.querySelector('.technology-sphere__hint')?.getClientRects().length ?? 0"), 0, 'The visible sphere caption must be removed');
-      const front = original.reduce((best, point, index) => point.depth > original[best].depth ? index : best, 0);
       await drag(40, 0);
       const right = await pose();
-      assert.ok(right[front].x > original[front].x + 10, 'Horizontal drag must turn the globe toward the gesture');
+      assert.ok(distance(original, right) > 5, 'Horizontal drag must rotate the globe');
       await drag(-40, 0);
-      assert.ok(distance(original, await pose()) < 0.1, 'Opposite horizontal drag must reverse the rotation');
+      assert.ok(distance(right, await pose()) > 5, 'Opposite horizontal drag must also rotate the globe');
+      const horizontal = await pose();
       await drag(0, 40);
-      assert.ok((await pose())[front].y > original[front].y + 10, 'Vertical drag must rotate on the second axis');
+      assert.ok(distance(horizontal, await pose()) > 5, 'Vertical drag must rotate on the second axis');
+      const vertical = await pose();
       await drag(0, -40);
-      assert.ok(distance(original, await pose()) < 0.1, 'Opposite vertical drag must reverse the rotation');
+      assert.ok(distance(vertical, await pose()) > 5, 'Opposite vertical drag must also rotate the globe');
+      const keyboardStart = await pose();
       await evaluate("document.querySelector('.technology-sphere__interaction').focus({preventScroll:true})");
       await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-      assert.ok(distance(original, await pose()) > 5, 'Keyboard users must also be able to rotate the sphere');
+      assert.ok(distance(keyboardStart, await pose()) > 5, 'Keyboard users must also be able to rotate the sphere');
       await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
-      assert.ok(distance(original, await pose()) < 0.1, 'Opposite arrow keys must reverse their rotation');
-      assert.equal(await evaluate("document.querySelector('.technology-sphere__pause').getAttribute('aria-pressed')"), 'true', 'Dragging must not silently change an explicit pause');
-      await evaluate("document.querySelector('.technology-sphere__pause').click()");
+      assert.ok(distance(keyboardStart, await pose()) < 0.1, 'Opposite arrow keys must reverse their rotation');
+      assert.equal(await spherePaused(), 'true', 'Dragging must not silently change an explicit pause');
+      await toggleSpherePause();
       const baselineStart = await pose(); await delay(120);
       const baseline = distance(baselineStart, await pose());
       await drag(24, 0, 160);
@@ -530,13 +874,16 @@ test('React preferences and bilingual CV downloads work in a browser', {
       await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       await send('Emulation.setTouchEmulationEnabled', { enabled: true });
       try {
-        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center'})");
+        await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'})");
+        if (await spherePaused() !== 'true') await toggleSpherePause();
+        await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
         assert.equal(await evaluate("getComputedStyle(document.querySelector('.technology-sphere__interaction')).pointerEvents"), 'none');
         const {x,y} = await sphereHitPoint();
         const before = await evaluate("document.querySelector('.technology-sphere__node').style.transform");
         await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
         await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 40, y: y + 40 }] });
         await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
         assert.notEqual(await evaluate("document.querySelector('.technology-sphere__node').style.transform"), before);
         const scroll = await evaluate('scrollY');
         const air = await sphereHitPoint('air');
@@ -545,8 +892,39 @@ test('React preferences and bilingual CV downloads work in a browser', {
         await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await waitFor(() => evaluate(`scrollY > ${scroll} + 20`), 'The full-height sphere must not trap mobile page scrolling');
       } finally {
+        if (await spherePaused() === 'true') await toggleSpherePause();
         await send('Emulation.setTouchEmulationEnabled', { enabled: false });
         await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+      }
+    });
+
+    await t.test('desktop globe logos have top headroom and skills ends flush with the globe', async () => {
+      const wasPaused = await spherePaused();
+      if (wasPaused !== 'true') await toggleSpherePause();
+      try {
+        for (const [width, height] of [[820, 1180], [1280, 900], [1920, 1080], [390, 844]]) {
+          await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+          await evaluate("document.querySelector('.technology-sphere').scrollIntoView({block:'center',behavior:'instant'}); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+          assert.ok(await evaluate(`(() => {
+            const section = document.getElementById('habilidades');
+            const sphere = section.querySelector('.technology-sphere');
+            return getComputedStyle(section).paddingBottom === '0px' &&
+              Math.abs(section.getBoundingClientRect().bottom - sphere.getBoundingClientRect().bottom) <= 1;
+          })()`), 'No differently colored section padding may remain beneath the globe');
+          if (width <= 640) continue;
+          for (let turn = 0; turn < 12; turn++) {
+            assert.ok(await evaluate(`(() => {
+              const sphere = document.querySelector('.technology-sphere');
+              const top = sphere.getBoundingClientRect().top;
+              return Array.from(sphere.querySelectorAll('.technology-logo')).every(image => image.getBoundingClientRect().top >= top + 4);
+            })()`), `Desktop logos must not be cropped at the top (${width}px, turn ${turn})`);
+            await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+            await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+          }
+        }
+      } finally {
+        await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+        if (wasPaused !== 'true') await toggleSpherePause();
       }
     });
 
@@ -566,20 +944,66 @@ test('React preferences and bilingual CV downloads work in a browser', {
                 (index < 2 || rect.top >= groups[index - 2].getBoundingClientRect().bottom));
           });
         })()`), 'Skills must use two columns on desktop/tablet and one on mobile');
-        assert.ok(await evaluate("document.querySelectorAll('#sobre-mi .content-section').length === 6"));
+        assert.ok(await evaluate("Array.from(document.querySelectorAll('.skills__groups .content-section__title')).every(title => getComputedStyle(title).textTransform === 'uppercase')"), 'All skill headings must consistently use uppercase');
+        assert.ok(await evaluate("document.querySelectorAll('#sobre-mi .content-section').length === 5"));
         assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('#sobre-mi .education__logo'), image => image.alt)"), ['Universidad Nacional de Lanús', 'Coderhouse', 'EducaciónIT', 'Platzi']);
         await evaluate("Promise.all(Array.from(document.querySelectorAll('.education__logo'), image => { image.loading = 'eager'; return image.decode(); }))");
+        assert.ok(await evaluate(`Array.from(document.querySelectorAll('#sobre-mi .education__logo')).every(image => {
+          const entry = image.closest('.content-section');
+          const text = entry.querySelector('.content-section__body')?.getBoundingClientRect();
+          const logo = image.getBoundingClientRect(); const box = entry.getBoundingClientRect();
+          return text && text.right < logo.left && Math.abs(logo.right - box.right) < 1 && entry.scrollWidth <= entry.clientWidth;
+        })`), 'Institution logos must sit to the right of their text without overflowing');
+        assert.equal(await evaluate("document.querySelector('#sobre-mi').textContent.includes('nivel por confirmar')"), false);
         assert.ok(await evaluate(`(() => {
           const courses = document.querySelector('.education__certifications');
           const title = courses?.querySelector('.education__subtitle');
           const degree = document.querySelector('.education__main > .content-section');
-          return courses && title && getComputedStyle(courses).borderTopWidth === '1px' &&
-            courses.getBoundingClientRect().top >= degree.getBoundingClientRect().bottom &&
-            title.getBoundingClientRect().top > courses.getBoundingClientRect().top;
-        })()`), 'The courses heading must follow the degree separator');
+          const university = degree.querySelector('.content-section__category');
+          const logo = degree.querySelector('.education__logo');
+          return courses && title && getComputedStyle(courses).borderTopWidth === '0px' &&
+            title.getBoundingClientRect().top - degree.getBoundingClientRect().bottom >= 60 &&
+            parseFloat(getComputedStyle(title).fontSize) >= 24 &&
+            parseFloat(getComputedStyle(university).fontSize) >= 24 &&
+            getComputedStyle(title).color === getComputedStyle(university).color &&
+            logo.getBoundingClientRect().height >= 96 && logo.getBoundingClientRect().width >= 112 &&
+            Array.from(document.querySelectorAll('.education__courses .education__logo')).every(image => image.getBoundingClientRect().height === 72);
+        })()`), 'Orange education headings and the UNLa logo must be larger, with more space before courses and no dashed rule');
         assert.ok(await evaluate("Array.from(document.querySelectorAll('#sobre-mi .content-section, .contact__invitation')).every(node => { const style = getComputedStyle(node); return style.borderRadius === '0px' && style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.borderLeftWidth === '0px'; })"));
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
       }
+    });
+
+    await t.test('work arrangements and placeholder notes are absent in both languages without removing languages or contact actions', async () => {
+      for (const language of ['es', 'en']) {
+        if (await evaluate('document.documentElement.lang') !== language) await click('language-toggle');
+        await waitFor(() => evaluate(`document.documentElement.lang === '${language}'`), 'Language did not update');
+        assert.equal(await evaluate("document.querySelectorAll('.education__aside > .content-section').length"), 1, 'Removing the work entry must also remove its top separator');
+        assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.education__aside li'), node => node.textContent)"), language === 'es' ? ['Español: nativo', 'Inglés: intermedio'] : ['Spanish: native', 'English: intermediate']);
+        assert.equal(await evaluate("/Modalidad de trabajo|Work arrangements|Proyectos freelance y oportunidades|Freelance projects and opportunities/.test(document.querySelector('#sobre-mi').textContent)"), false);
+        assert.equal(await evaluate("document.querySelectorAll('.contact__note').length"), 0);
+        assert.ok(await evaluate("!!document.querySelector('.contact__invitation a[href^=\"mailto:\"]')"));
+        assert.equal(await evaluate("document.querySelector('#contacto').textContent.includes('El formulario se incorporará') || document.querySelector('#contacto').textContent.includes('once we choose a delivery service')"), false);
+      }
+      await click('language-toggle');
+      await waitFor(() => evaluate("document.documentElement.lang === 'es'"), 'Spanish did not restore');
+    });
+
+    await t.test('sphere switches between white/black and dark/white while mixed logos stay transparent', async () => {
+      for (const theme of ['light', 'dark']) {
+        if (await evaluate('document.documentElement.dataset.theme') !== theme) await click('theme-toggle');
+        const colors = theme === 'light' ? ['rgb(255, 255, 255)', 'rgb(0, 0, 0)'] : ['rgb(17, 17, 17)', 'rgb(255, 255, 255)'];
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.technology-sphere')).backgroundColor"), colors[0]);
+        assert.ok(await evaluate(`Array.from(document.querySelectorAll('.technology-sphere__line')).every(line => getComputedStyle(line).stroke === '${colors[1]}')`));
+        assert.ok(await evaluate(`Array.from(document.querySelectorAll('.technology-sphere__dot, .technology-sphere__center')).every(dot => getComputedStyle(dot).fill === '${colors[1]}')`));
+        const logos = await evaluate(`Array.from(document.querySelectorAll('img[alt="Astro"], img[alt="n8n"]'), image => {
+          const style = getComputedStyle(image);
+          return { background: style.backgroundColor, padding: style.paddingTop, filter: style.filter };
+        })`);
+        assert.ok(logos.length >= 4, 'Both project and sphere instances must be checked');
+        assert.ok(logos.every(logo => logo.background === 'rgba(0, 0, 0, 0)' && logo.padding === '0px' && logo.filter === (theme === 'light' ? 'brightness(0)' : 'none')));
+      }
+      await click('theme-toggle');
     });
 
     await t.test('theme changes neutral colors but preserves orange and images', async () => {
@@ -609,10 +1033,23 @@ test('React preferences and bilingual CV downloads work in a browser', {
       assert.match(await evaluate('document.title'), /Software development/);
       assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark');
       assert.equal(await evaluate("document.querySelector('.site-header__role').textContent"), 'Frontend Developer');
+      assert.ok(await evaluate("document.querySelector('#sobre-mi').textContent.includes('English: intermediate')"));
+      assert.equal(await evaluate("document.querySelector('#sobre-mi').textContent.includes('level to be confirmed')"), false);
       assert.match(await evaluate("document.querySelector('.hero__description').textContent"), /continuous growth.*lifelong learning.*quality products.*Information Systems.*Universidad Nacional de Lanús/);
       assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('[data-project-group=featured] .project-card__category'), node => node.textContent)"), Array(4).fill('In production'));
       assert.match(await evaluate("Array.from(document.querySelectorAll('[data-project-group=training] article')).find(node => node.textContent.includes('The Mobile Shop')).querySelector('.project-card__description').textContent"), /checkout.*NoSQL.*Context API.*Firestore.*final.*Coderhouse.*React/);
       assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.skills__groups > .content-section')).slice(2).map(section => section.querySelectorAll('li').length)"), [7,7]);
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.skills__groups .content-section__title'), node => node.textContent)"), ['FRONTEND', 'Data and integration', 'Tools', 'Automation & AI']);
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.skills__groups li'), node => node.textContent)"), [
+        'Semantic HTML and CSS', 'JavaScript and TypeScript', 'React and Next.js', 'Tailwind, Bootstrap, Sass, BEM', 'Responsive design',
+        'Firebase, Firestore', 'Supabase, MySQL, PostgreSQL', 'REST APIs', 'Python', 'Node.js', 'Google Cloud', 'Docker',
+        'Git and GitHub', 'Vite and Vercel', 'Domains and DNS', 'Performance and SEO', 'Analytics', 'Visual Studio Code', 'Code::Blocks',
+        'n8n', 'Claude AI and OpenAI', 'GitHub Copilot', 'Gentle AI, Gentle Shell and Engram', 'AI agents and LLMs', 'Webhooks', 'Telegram integrations',
+      ]);
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.education__courses .content-section__description'), node => node.textContent)"), ['Web Development, JavaScript and React JS.', 'UX, digital transformation and digital marketing.', 'Version control with Git and GitHub.']);
+      assert.equal(await evaluate("document.querySelector('.education__subtitle').textContent"), 'Courses and certifications');
+      assert.equal(await evaluate("document.querySelector('.education__main > .content-section .content-section__title').textContent"), 'Bachelor’s Degree in Information Systems');
+      assert.equal(await evaluate("document.querySelector('meta[name=description]').content"), "Emiliano D'Ambrosio’s portfolio. Frontend development, web projects and digital solutions.");
       await click('whatsapp-tab-toggle');
       assert.equal(await evaluate("document.querySelector('#whatsapp-tab-panel a').textContent.trim()"), 'Contact via WhatsApp');
       await click('whatsapp-tab-toggle');
@@ -656,11 +1093,11 @@ test('React preferences and bilingual CV downloads work in a browser', {
         [['https://aureq.com.ar', 'View site']],
         [['https://www.totalmecanica.com.ar', 'View site']],
         [['https://ayelenargerich.com', 'View site']],
-        [['https://proyecto-coderhouse-react.vercel.app/', 'View demo']],
-        [['https://java-script-theta.vercel.app/', 'View demo']],
-        [['https://andesxtreme.netlify.app/', 'View site']],
-        [['https://lnkd.in/p/dSdJyh5F', 'View demo video']],
-        [['https://lnkd.in/p/dXZXnC-8', 'View demo video']], [],
+        [['https://proyecto-coderhouse-react.vercel.app/', 'View demo'], ['https://github.com/Emilianodamb/proyecto-coderhouse-react', 'View repository']],
+        [['https://java-script-theta.vercel.app/', 'View demo'], ['https://github.com/Emilianodamb/ferreteria-online', 'View repository']],
+        [['https://andesxtreme.netlify.app/', 'View site'], ['https://github.com/Emilianodamb/andesXtreme', 'View repository']],
+        [['https://lnkd.in/p/dSdJyh5F', 'View demo video'], ['https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION', 'View repository']],
+        [['https://lnkd.in/p/dXZXnC-8', 'View demo video'], ['https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS', 'View repository']], [],
       ]);
 
       await click('language-toggle');
@@ -674,8 +1111,8 @@ test('React preferences and bilingual CV downloads work in a browser', {
       assert.equal(spanish[0].cards[0].status, null);
       assert.deepEqual([spanish[0].cards[0].links, spanish[2].cards[0].links, spanish[2].cards[1].links], [
         [['https://lnkd.in/p/d6vi4X_H', 'Ver video demostración']],
-        [['https://lnkd.in/p/dSdJyh5F', 'Ver video demostración']],
-        [['https://lnkd.in/p/dXZXnC-8', 'Ver video demostración']],
+        [['https://lnkd.in/p/dSdJyh5F', 'Ver video demostración'], ['https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION', 'Ver repositorio']],
+        [['https://lnkd.in/p/dXZXnC-8', 'Ver video demostración'], ['https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS', 'Ver repositorio']],
       ]);
       const siteLinks = await evaluate(`Array.from(document.querySelectorAll('.project-card__destination'), destination => ({
         text: destination.textContent, href: destination.closest('a').getAttribute('href'),
@@ -704,7 +1141,7 @@ test('React preferences and bilingual CV downloads work in a browser', {
         assert.ok(await evaluate("Array.from(document.querySelectorAll('.project-card__description')).every(node => node.scrollWidth <= node.clientWidth)"), `${label}: text overflow`);
         assert.equal(await evaluate("document.querySelectorAll('.project-card').length"), 10);
         if (process.env.PORTFOLIO_TEST_SCREENSHOTS) {
-          await evaluate("document.getElementById('proyectos').scrollIntoView()");
+          await evaluate("document.getElementById('proyectos').scrollIntoView({behavior:'instant'})");
           const clip = await evaluate("(() => { const rect = document.querySelector('.project-card').getBoundingClientRect(); return { x: rect.left + scrollX, y: rect.top + scrollY, width: rect.width, height: rect.height, scale: 1 }; })()");
           const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
           await writeFile(join(process.env.PORTFOLIO_TEST_SCREENSHOTS, `portfolio-projects-${label}.png`), Buffer.from(screenshot.data, 'base64'));
@@ -714,7 +1151,29 @@ test('React preferences and bilingual CV downloads work in a browser', {
       await waitFor(() => evaluate("document.documentElement.lang === 'en'"), 'English did not restore');
     });
 
-    await t.test('modal shows only ES/EN and downloads the matching PDF', async () => {
+    await t.test('CV language caption follows the site language and labels the dialog', async () => {
+      for (const [language, caption] of [['es', 'Elegir idioma del cv'], ['en', 'Choose CV language']]) {
+        if (await evaluate('document.documentElement.lang') !== language) await click('language-toggle');
+        await waitFor(() => evaluate(`document.documentElement.lang === '${language}'`), 'Site language did not update');
+        await click('cv-download');
+        try {
+          assert.equal(await evaluate("document.querySelector('dialog').open"), true);
+          assert.equal(await evaluate("document.querySelector('dialog .cv-modal__title')?.textContent"), caption);
+          assert.ok(await evaluate(`(() => {
+            const dialog = document.querySelector('dialog');
+            const title = document.getElementById(dialog.getAttribute('aria-labelledby'));
+            return title && title.getBoundingClientRect().height > 0 && getComputedStyle(title).visibility === 'visible';
+          })()`), 'The caption must be visible and name the dialog accessibly');
+          assert.equal(await evaluate("document.querySelector('.cv-modal__options').innerText.replace(/\\s+/g, ' ').trim()"), '[ES] [EN]');
+          assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Caption must not create page overflow');
+        } finally {
+          await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+          await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        }
+      }
+    });
+
+    await t.test('modal keeps ES/EN downloads mapped to their matching PDFs', async () => {
       await send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: scratch });
       for (const [language, name] of [
         ['es', "CV_Emiliano_D'Ambrosio_Desarrollador_Frontend.pdf"],
@@ -722,7 +1181,7 @@ test('React preferences and bilingual CV downloads work in a browser', {
       ]) {
         await click('cv-download');
         assert.equal(await evaluate("document.querySelector('dialog').open"), true);
-        assert.equal(await evaluate("document.querySelector('dialog').innerText.replace(/\\s+/g, ' ').trim()"), '[ES] [EN]');
+        assert.equal(await evaluate("document.querySelector('.cv-modal__options').innerText.replace(/\\s+/g, ' ').trim()"), '[ES] [EN]');
         await evaluate(`document.querySelector('dialog a[href="/cv/${language}.pdf"]').click()`);
         assert.equal(await evaluate("document.querySelector('dialog').open"), false);
         const downloaded = await waitFor(() => readFile(join(scratch, name)), `Missing ${language} download`);
@@ -808,7 +1267,9 @@ test('React preferences and bilingual CV downloads work in a browser', {
         assert.ok(cards.every((card) => card.background === 'rgba(0, 0, 0, 0)'));
         assert.ok(cards[0].intrinsicRatio > 1 && cards[0].ratio > 1, 'The replacement database screenshot must remain landscape');
         assert.equal(cards[0].radius, cards[1].radius, 'Database image must use the same rounding as other project images');
-        assert.ok(await evaluate("Array.from(document.querySelectorAll('#proyectos a')).every(link => !link.href.includes('github.com'))"));
+        assert.ok(await evaluate("Array.from(document.querySelectorAll('[data-project-group=featured] a')).every(link => !link.href.includes('github.com'))"));
+        assert.equal(await evaluate("document.querySelectorAll('.project-card__repository').length"), 5);
+        assert.ok(await evaluate("Array.from(document.querySelectorAll('.project-card__repository')).every(link => link.target === '_blank' && link.rel.includes('noopener') && link.rel.includes('noreferrer'))"));
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
       }
     });
@@ -846,7 +1307,7 @@ test('React preferences and bilingual CV downloads work in a browser', {
         assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
         if (process.env.PORTFOLIO_TEST_SCREENSHOTS) {
           for (const section of ['proyectos', 'experiencia']) {
-            await evaluate(`document.getElementById('${section}').scrollIntoView({block:'start'})`);
+            await evaluate(`document.getElementById('${section}').scrollIntoView({block:'start',behavior:'instant'})`);
             const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
             await writeFile(join(process.env.PORTFOLIO_TEST_SCREENSHOTS, `portfolio-marquee-${section}-${width}.png`), Buffer.from(screenshot.data, 'base64'));
           }

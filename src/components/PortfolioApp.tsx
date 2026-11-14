@@ -149,7 +149,6 @@ function Education() {
         </div>
         <aside className="education__aside" aria-label={ui.additionalInfo}>
           <ContentSection title={ui.languages} items={[ui.nativeSpanish, ui.intermediateEnglish]} />
-          <ContentSection title={ui.workMode} description={ui.workDescription} />
         </aside>
       </div>
     </Section>
@@ -174,7 +173,6 @@ function Contact() {
           <h3 className="contact__title">{ui.projectQuestion}</h3>
           <p>{ui.contactInvitation}</p>
           <a className="button button--primary" href={`mailto:${profile.email}`}>{ui.writeEmail} <span aria-hidden="true">↗</span></a>
-          <p className="contact__note">{ui.emailNote}</p>
         </div>
       </div>
     </Section>

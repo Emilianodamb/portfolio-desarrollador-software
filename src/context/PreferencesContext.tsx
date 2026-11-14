@@ -15,15 +15,14 @@ const PreferencesContext = createContext<Preferences | null>(null);
 const storageKey = 'portfolio-preferences';
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
-  // Match the Spanish/light HTML during hydration before restoring saved choices.
-  const [theme, setTheme] = useState<Theme>('light');
+  // Every visit starts dark; only the saved language is restored after hydration.
+  const [theme, setTheme] = useState<Theme>('dark');
   const [language, setLanguage] = useState<Language>('es');
   const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-      if (saved?.theme === 'dark' || saved?.theme === 'light') setTheme(saved.theme);
       if (saved?.language === 'en' || saved?.language === 'es') setLanguage(saved.language);
     } catch {
       // Storage can be unavailable or contain stale data; defaults remain usable.

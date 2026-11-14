@@ -33,19 +33,19 @@ const expected = [
     title: 'The Mobile Shop', category: 'E-commerce de práctica',
     description: 'Desarrollé una tienda de dispositivos con catálogo por categorías, carrito, flujo de pedido, checkout y base de datos NoSQL. Gestioné el estado compartido del carrito con Context API y guardé las órdenes en Firestore. Este proyecto formó parte del trabajo final del curso de React en Coderhouse.',
     technologies: ['HTML', 'CSS', 'JavaScript', 'React', 'Firebase', 'Git', 'GitHub', 'Visual Studio Code'],
-    links: [['https://proyecto-coderhouse-react.vercel.app/', 'Ver demo']],
+    links: [['https://proyecto-coderhouse-react.vercel.app/', 'Ver demo'], ['https://github.com/Emilianodamb/proyecto-coderhouse-react', 'Ver repositorio']],
   },
   {
     title: 'Ferretería Online', category: 'E-commerce de práctica',
-    description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página.',
+    description: 'Desarrollé una tienda interactiva con catálogo, filtros y un flujo de compra simulado. Usé JavaScript Vanilla para actualizar la interfaz y localStorage para recuperar el carrito al volver a abrir la página. Este proyecto fue el trabajo final del curso de Javascript de Coderhouse y fue la primera vez que desarrollé con un lenguaje de programación web.',
     technologies: ['HTML', 'CSS', 'JavaScript', 'Git', 'GitHub', 'Visual Studio Code'],
-    links: [['https://java-script-theta.vercel.app/', 'Ver demo']],
+    links: [['https://java-script-theta.vercel.app/', 'Ver demo'], ['https://github.com/Emilianodamb/ferreteria-online', 'Ver repositorio']],
   },
   {
     title: 'Andes Xtreme', category: 'Sitio web de práctica',
     description: 'Maqueté un sitio responsive de turismo aventura para presentar actividades y destinos. Usé HTML semántico y organicé los estilos con Sass y la metodología BEM.',
     technologies: ['HTML', 'CSS', 'Bootstrap', 'Sass', 'Git', 'GitHub', 'Visual Studio Code'],
-    links: [['https://andesxtreme.netlify.app/', 'Ver sitio']],
+    links: [['https://andesxtreme.netlify.app/', 'Ver sitio'], ['https://github.com/Emilianodamb/andesXtreme', 'Ver repositorio']],
   },
 ];
 
@@ -107,6 +107,23 @@ test('other projects reuse open rows with Eventyfier offline and without links',
   assert.ok(!cards[2].includes('<a '));
   assert.ok(!html.includes('Contenido provisional de la referencia'));
 });
+
+for (const [title, repository, video] of [
+  ['Trivia multijugador en C', 'https://github.com/Emilianodamb/TP-FINAL-PROGRAMACION', 'https://lnkd.in/p/dSdJyh5F'],
+  ['Sistema de temporización en Assembler', 'https://github.com/Emilianodamb/TP-FINAL-ARQUITECTURA-DE-COMPUTADORAS', 'https://lnkd.in/p/dXZXnC-8'],
+]) {
+  test(`${title} links to its repository without replacing the demo video`, async () => {
+    const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+    const row = [...html.matchAll(/<article class="project-card">[\s\S]*?<\/article>/g)].map(match => match[0]).find(card => card.includes(`>${title}</h3>`));
+    assert.ok(row);
+    const link = row.match(new RegExp(`<a[^>]*href="${repository}"[^>]*>[\\s\\S]*?<\\/a>`))?.[0];
+    assert.ok(link, 'Missing exact repository destination');
+    assert.match(link, /target="_blank" rel="noopener noreferrer"/);
+    assert.ok(link.includes('Ver repositorio'));
+    assert.ok(row.includes(`href="${video}"`) && row.includes('Ver video demostración'));
+    assert.equal((row.match(/<a /g) ?? []).length, 2);
+  });
+}
 
 test('published assets contain the anonymized mockup but not the original customer screenshot', async () => {
   const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');

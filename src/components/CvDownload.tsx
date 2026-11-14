@@ -20,7 +20,8 @@ export default function CvDownload() {
       <button ref={trigger} id="cv-download" type="button" className="button button--primary" onClick={() => dialog.current?.showModal()}>
         {ui.downloadCv} <span aria-hidden="true">↓</span>
       </button>
-      <dialog ref={dialog} className="cv-modal" aria-label="CV" onClick={closeOnBackdrop} onClose={() => trigger.current?.focus()}>
+      <dialog ref={dialog} className="cv-modal" aria-labelledby="cv-language-title" onClick={closeOnBackdrop} onClose={() => trigger.current?.focus()}>
+        <p className="cv-modal__title" id="cv-language-title">{ui.chooseCvLanguage}</p>
         <div className="cv-modal__options">
           <a className="button button--secondary" href="/cv/es.pdf" download={cvFiles.es} aria-label={ui.downloadSpanishCv} onClick={() => dialog.current?.close()}>[ES]</a>
           <a className="button button--secondary" href="/cv/en.pdf" download={cvFiles.en} aria-label={ui.downloadEnglishCv} onClick={() => dialog.current?.close()}>[EN]</a>
