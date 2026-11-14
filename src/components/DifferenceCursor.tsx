@@ -1,62 +1,68 @@
 import { useEffect, useRef } from 'react';
 
+type CursorPosition = { x: number; y: number; time: number };
+type CursorFollower = {
+  element: HTMLSpanElement;
+  delay: number;
+  positions: CursorPosition[];
+  timer: number | null;
+};
+
 export default function DifferenceCursor() {
   const cursor = useRef<HTMLDivElement>(null);
-  const shape = useRef<SVGPathElement>(null);
+  const dot = useRef<HTMLSpanElement>(null);
+  const trail = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const element = cursor.current;
-    if (!element) return;
+    const dotElement = dot.current;
+    const trailElement = trail.current;
+    if (!element || !dotElement || !trailElement) return;
 
     const capability = window.matchMedia('(hover: hover) and (pointer: fine)');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.documentElement;
-    let frame: number | null = null;
+    const followers: CursorFollower[] = [
+      { element: trailElement, delay: 100, positions: [], timer: null },
+    ];
     let active = false;
-    let targetX = 0;
-    let targetY = 0;
-    let followerX = 0;
-    let followerY = 0;
-    let lastTime = 0;
 
-    const render = (dx = 0, dy = 0) => {
-      const distance = Math.hypot(dx, dy);
-      const tail = Math.min(distance * 0.65, 56);
-      const taper = tail / 56;
-      const angle = distance ? Math.atan2(dy, dx) : 0;
-      const x = targetX - Math.cos(angle) * tail / 2;
-      const y = targetY - Math.sin(angle) * tail / 2;
-      // One continuous shape avoids overlapping difference layers cancelling inversion.
-      element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${angle}rad) scale(${1 + tail / 48}, ${1 - tail / 240})`;
-      element.style.borderRadius = tail ? '0%' : '50%';
-      // Local -X is the trailing edge; keep the rounded head on local +X.
-      shape.current?.setAttribute('d', `M 0 50 C ${24 * taper} ${22 + 24 * taper} ${22 + 12 * taper} 0 ${50 + 16 * taper} 0 C ${78 + 8 * taper} 0 100 22 100 50 C 100 78 ${78 + 8 * taper} 100 ${50 + 16 * taper} 100 C ${22 + 12 * taper} 100 ${24 * taper} ${78 - 24 * taper} 0 50 Z`);
+    element.style.transform = '';
+    element.style.borderRadius = '';
+
+    const place = (circle: HTMLElement, x: number, y: number) => {
+      circle.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+    };
+
+    const cancelPending = () => {
+      followers.forEach(follower => {
+        if (follower.timer !== null) window.clearTimeout(follower.timer);
+        follower.timer = null;
+        follower.positions.length = 0;
+      });
     };
 
     const hide = () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      frame = null;
+      cancelPending();
       active = false;
       element.style.opacity = '0';
       delete root.dataset.cursorActive;
     };
 
-    const animate = (time: number) => {
-      frame = null;
-      const follow = 1 - Math.exp(-Math.min(time - lastTime, 32) / 42);
-      lastTime = time;
-      followerX += (targetX - followerX) * follow;
-      followerY += (targetY - followerY) * follow;
-      const dx = targetX - followerX;
-      const dy = targetY - followerY;
-      if (Math.hypot(dx, dy) < 0.1 || reducedMotion.matches) {
-        followerX = targetX;
-        followerY = targetY;
-        render();
-        return;
-      }
-      render(dx, dy);
-      frame = requestAnimationFrame(animate);
+    const scheduleTrail = (follower: CursorFollower) => {
+      if (follower.timer !== null || follower.positions.length === 0) return;
+      const delay = Math.max(0, follower.positions[0].time + follower.delay - performance.now());
+      follower.timer = window.setTimeout(() => flushTrail(follower), delay);
+    };
+
+    const flushTrail = (follower: CursorFollower) => {
+      follower.timer = null;
+      if (!active) return;
+      const cutoff = performance.now() - follower.delay;
+      let latest: CursorPosition | undefined;
+      while (follower.positions.length && follower.positions[0].time <= cutoff) latest = follower.positions.shift();
+      if (latest) place(follower.element, latest.x, latest.y);
+      scheduleTrail(follower);
     };
 
     const move = (event: PointerEvent) => {
@@ -64,26 +70,43 @@ export default function DifferenceCursor() {
         hide();
         return;
       }
-      targetX = event.clientX;
-      targetY = event.clientY;
+      const { clientX: x, clientY: y } = event;
       if (!active || reducedMotion.matches) {
-        if (frame !== null) cancelAnimationFrame(frame);
-        frame = null;
-        followerX = targetX;
-        followerY = targetY;
-        render();
-      } else if (frame === null) {
-        lastTime = performance.now();
-        frame = requestAnimationFrame(animate);
+        cancelPending();
+        dotElement.style.transition = 'none';
+        place(dotElement, x, y);
+        followers.forEach(follower => {
+          follower.element.style.transition = 'none';
+          place(follower.element, x, y);
+        });
+        dotElement.getBoundingClientRect();
+        dotElement.style.transition = '';
+        followers.forEach(follower => { follower.element.style.transition = ''; });
+      } else {
+        place(dotElement, x, y);
+        const position = { x, y, time: performance.now() };
+        followers.forEach(follower => {
+          follower.positions.push(position);
+          // Bound high-frequency input without creating one timeout per event.
+          if (follower.positions.length > 128) follower.positions.shift();
+          scheduleTrail(follower);
+        });
       }
       active = true;
       element.style.opacity = '1';
       root.dataset.cursorActive = 'true';
     };
 
-    const updateCapability = () => { if (!capability.matches) hide(); };
+    const preventAutoScroll = (event: MouseEvent) => {
+      if (event.button !== 1 || !active || !capability.matches) return;
+      // Preserve the native middle-click action for links, which does not start autoscroll.
+      if (event.target instanceof Element && event.target.closest('a[href]')) return;
+      event.preventDefault();
+    };
 
+    const updateCapability = () => { if (!capability.matches) hide(); };
     document.addEventListener('pointermove', move, { passive: true });
+    document.addEventListener('mousedown', preventAutoScroll, true);
     document.documentElement.addEventListener('pointerleave', hide);
     document.addEventListener('pointercancel', hide);
     document.addEventListener('keydown', hide);
@@ -95,6 +118,7 @@ export default function DifferenceCursor() {
     return () => {
       hide();
       document.removeEventListener('pointermove', move);
+      document.removeEventListener('mousedown', preventAutoScroll, true);
       document.documentElement.removeEventListener('pointerleave', hide);
       document.removeEventListener('pointercancel', hide);
       document.removeEventListener('keydown', hide);
@@ -107,9 +131,8 @@ export default function DifferenceCursor() {
 
   return (
     <div ref={cursor} className="difference-cursor" aria-hidden="true">
-      <svg className="difference-cursor__shape" viewBox="0 0 100 100" focusable="false">
-        <path ref={shape} d="M 0 50 C 0 22 22 0 50 0 C 78 0 100 22 100 50 C 100 78 78 100 50 100 C 22 100 0 78 0 50 Z" />
-      </svg>
+      <span ref={dot} className="difference-cursor__dot" />
+      <span ref={trail} className="difference-cursor__trail" />
     </div>
   );
 }
