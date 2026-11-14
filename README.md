@@ -22,7 +22,7 @@ pnpm test
 pnpm preview
 ```
 
-Los tests inspeccionan el sitio compilado: ejecutar el build primero. Las pruebas interactivas utilizan Chrome, Edge o Chromium en modo headless, sin dependencias adicionales. Si no se detecta un navegador, esa prueba se omite explícitamente; también se puede indicar su ejecutable con `PORTFOLIO_TEST_BROWSER`. Los perfiles y descargas de prueba se crean en la carpeta temporal del sistema y se eliminan al finalizar.
+Los tests inspeccionan el sitio compilado y la coordinación de carga de los recursos críticos: ejecutar el build primero. `pnpm test` no incluye una comprobación visual en navegador de la animación.
 
 Publicar `dist/` en un hosting estático. El `index.html` de la raíz conserva la versión anterior como referencia; la entrada actual es `src/pages/index.astro`. Ejecutar los comandos desde la raíz del repositorio.
 
@@ -55,9 +55,18 @@ Los PDF se toman de la carpeta `CV/` durante el build, sin modificar sus bytes:
 | `src/pages/index.astro` | Montaje de la raíz React con `client:load` |
 | `src/data/cv.ts` | Nombres de los PDF utilizados por los enlaces y endpoints |
 
-Astro genera HTML inicial en español y modo claro. Una sola raíz React se hidrata para que los controles y todas las secciones compartan el mismo contexto. No se utilizan islas independientes para estado compartido. Las clases siguen `bloque__elemento--modificador`; no se utiliza Tailwind ni una biblioteca de animaciones.
+Astro genera HTML inicial en español y modo oscuro. Una sola raíz React se hidrata para que los controles y todas las secciones compartan el mismo contexto. No se utilizan islas independientes para estado compartido. Las clases siguen `bloque__elemento--modificador`; no se utiliza Tailwind. GSAP anima únicamente la introducción de carga.
 
-Las fuentes se alojan localmente en `public/fonts/`, con sus licencias: Cabinet Grotesk Medium (500) para títulos y DM Sans Regular (400) para texto. La foto del hero está en `src/assets/profile-hd.webp` y se publica sin volver a comprimirla.
+Las fuentes se alojan localmente en `public/fonts/`, con sus licencias: Cabinet Grotesk Medium (500) para títulos y DM Sans Regular (400) para texto.
+
+## Imágenes e introducción de carga
+
+- `src/pages/index.astro` usa `getImage()` de Astro durante el build para generar variantes WebP responsive del retrato y las capturas de proyectos. React recibe únicamente sus URL, dimensiones y `srcSet`; no ejecuta el servicio de imágenes en el navegador.
+- El hero tiene preload responsive, carga inmediata y prioridad alta. Las demás imágenes de contenido conservan carga nativa `lazy` y dimensiones explícitas. Los logos SVG se mantienen como SVG, sin rasterizarlos.
+- `IntroLoader.astro` presenta el logo centrado sobre negro. GSAP anima un recorte ondulado ascendente y después desenfoca el logo y desvanece la pantalla. El llenado es una animación, no un porcentaje de descarga.
+- `src/assets/intro-logo.png` conserva el PNG original de 2146 × 2146 extraído del SVG del paquete `ed-favicon/`, que no contiene trazos vectoriales. Astro genera la versión WebP de 640 px usada en la intro.
+- La salida espera la decodificación del hero y el logo, además de las fuentes locales; no espera las imágenes lazy. Ante errores se permite continuar. Un límite independiente de 10 segundos evita bloquear el sitio incluso si falla el módulo de animación.
+- Sin JavaScript o con movimiento reducido, el contenido se muestra directamente. Mientras la intro está activa, el contenido permanece inerte y se oculta el cursor personalizado; ambos recuperan su comportamiento al finalizar.
 
 ## Pendiente para próximas iteraciones
 

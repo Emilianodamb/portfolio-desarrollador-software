@@ -1,6 +1,11 @@
 ---
 import '../styles/global.css';
 import { profile } from '../data/portfolio';
+import IntroLoader from '../components/IntroLoader.astro';
+import type { OptimizedImage } from '../context/ImageAssetsContext';
+
+interface Props { hero: OptimizedImage }
+const { hero } = Astro.props;
 ---
 <!doctype html>
 <html lang="es" data-theme="dark">
@@ -9,9 +14,35 @@ import { profile } from '../data/portfolio';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Portfolio de Emiliano D'Ambrosio. Desarrollo frontend, proyectos web y soluciones digitales." />
     <meta name="theme-color" content="#111111" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preload" as="image" href={hero.src} imagesrcset={hero.srcSet} imagesizes={hero.sizes} fetchpriority="high" />
+    <link rel="preload" as="font" href="/fonts/cabinet-grotesk/CabinetGrotesk-Medium.woff2" type="font/woff2" crossorigin />
+    <link rel="preload" as="font" href="/fonts/dm-sans/DMSans-Regular.ttf" type="font/ttf" crossorigin />
+    <script is:inline>
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.dataset.intro = 'loading';
+        // Independent of the animation bundle: failed imports must never trap the page.
+        window.setTimeout(() => {
+          if (!document.documentElement.dataset.intro) return;
+          delete document.documentElement.dataset.intro;
+          document.getElementById('site-content')?.removeAttribute('inert');
+          window.dispatchEvent(new Event('intro:timeout'));
+        }, 10000);
+      }
+    </script>
     <title>{profile.name} · Desarrollo de software</title>
   </head>
   <body>
-    <slot />
+    <IntroLoader />
+    <div id="site-content"><slot /></div>
+    <script is:inline>
+      if (document.documentElement.dataset.intro) {
+        document.getElementById('site-content').inert = true;
+      }
+    </script>
   </body>
 </html>

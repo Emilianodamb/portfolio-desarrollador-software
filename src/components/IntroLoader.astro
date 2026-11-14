@@ -1,0 +1,46 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/intro-logo.png';
+---
+<div id="intro-loader" aria-hidden="true">
+  <svg class="intro-loader__clip" width="0" height="0" focusable="false">
+    <defs>
+      <clipPath id="intro-liquid-clip" clipPathUnits="objectBoundingBox">
+        <path id="intro-liquid-surface" d="M 0 1.05 H 1 V 1.1 H 0 Z" />
+      </clipPath>
+    </defs>
+  </svg>
+  <Image class="intro-loader__logo" src={logo} format="webp" width={640} height={640} alt="" loading="eager" decoding="async" />
+</div>
+
+<script>
+  import '../scripts/intro-loader';
+</script>
+
+<style>
+  #intro-loader { display: none; }
+  :global(:root[data-intro]) { overflow: hidden; }
+  :global(:root[data-intro] body) { overflow: hidden; }
+  :global(:root[data-intro='loading'] #site-content) { visibility: hidden; }
+  :global(:root[data-intro] #intro-loader) {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    background: #000;
+    pointer-events: auto;
+  }
+  :global(:root[data-intro] .difference-cursor) { visibility: hidden; }
+  .intro-loader__clip { position: absolute; }
+  .intro-loader__logo {
+    width: clamp(180px, 34vw, 320px);
+    height: auto;
+    clip-path: url(#intro-liquid-clip);
+    will-change: filter, opacity;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(:root[data-intro] #intro-loader) { display: none; }
+    :global(:root[data-intro] #site-content) { visibility: visible; }
+  }
+</style>

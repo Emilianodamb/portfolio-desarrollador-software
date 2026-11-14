@@ -13,6 +13,7 @@ import Section from './Section';
 import WhatsAppTab from './WhatsAppTab';
 import TechnologySphere from './TechnologySphere';
 import DifferenceCursor from './DifferenceCursor';
+import { ImageAssetsContext, useOptimizedImage, type ImageAssets } from '../context/ImageAssetsContext';
 
 function SiteHeader() {
   const { content: { profile }, ui } = usePreferences();
@@ -54,6 +55,7 @@ function SiteHeader() {
 
 function Hero() {
   const { content: { profile }, ui } = usePreferences();
+  const image = useOptimizedImage(portrait);
   return (
     <section className="hero" id="inicio" aria-labelledby="hero-title">
       <div className="hero__content">
@@ -71,7 +73,7 @@ function Hero() {
         </div>
       </div>
       <div className="hero__portrait">
-        <img className="hero__image" src={portrait.src} width={portrait.width} height={portrait.height} alt={profile.name} loading="eager" fetchPriority="high" decoding="async" />
+        <img className="hero__image" {...image} alt={profile.name} loading="eager" fetchPriority="high" decoding="async" />
       </div>
     </section>
   );
@@ -200,6 +202,6 @@ function Portfolio() {
   );
 }
 
-export default function PortfolioApp() {
-  return <PreferencesProvider><Portfolio /></PreferencesProvider>;
+export default function PortfolioApp({ images }: { images: ImageAssets }) {
+  return <ImageAssetsContext.Provider value={images}><PreferencesProvider><Portfolio /></PreferencesProvider></ImageAssetsContext.Provider>;
 }

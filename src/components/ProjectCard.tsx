@@ -1,17 +1,17 @@
 import type { DisplayProject } from '../data/portfolio';
 import { usePreferences } from '../context/PreferencesContext';
 import TechnologyList from './TechnologyList';
+import { useOptimizedImage } from '../context/ImageAssetsContext';
 
 export default function ProjectCard({ project }: { project: DisplayProject }) {
   const { ui } = usePreferences();
+  const image = useOptimizedImage(project.image);
   const actionLabels = { site: ui.viewSite, application: ui.viewApplication, demo: ui.viewDemo, video: ui.viewDemoVideo };
   return (
     <article className="project-card">
       <img
         className="project-card__image"
-        src={project.image.src}
-        width={project.image.width}
-        height={project.image.height}
+        {...image}
         alt={`${ui.projectImage} ${project.title}`}
         loading="lazy"
         decoding="async"

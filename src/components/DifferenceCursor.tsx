@@ -97,16 +97,8 @@ export default function DifferenceCursor() {
       root.dataset.cursorActive = 'true';
     };
 
-    const preventAutoScroll = (event: MouseEvent) => {
-      if (event.button !== 1 || !active || !capability.matches) return;
-      // Preserve the native middle-click action for links, which does not start autoscroll.
-      if (event.target instanceof Element && event.target.closest('a[href]')) return;
-      event.preventDefault();
-    };
-
     const updateCapability = () => { if (!capability.matches) hide(); };
     document.addEventListener('pointermove', move, { passive: true });
-    document.addEventListener('mousedown', preventAutoScroll, true);
     document.documentElement.addEventListener('pointerleave', hide);
     document.addEventListener('pointercancel', hide);
     document.addEventListener('keydown', hide);
@@ -118,7 +110,6 @@ export default function DifferenceCursor() {
     return () => {
       hide();
       document.removeEventListener('pointermove', move);
-      document.removeEventListener('mousedown', preventAutoScroll, true);
       document.documentElement.removeEventListener('pointerleave', hide);
       document.removeEventListener('pointercancel', hide);
       document.removeEventListener('keydown', hide);
