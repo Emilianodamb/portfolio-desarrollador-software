@@ -1,6 +1,6 @@
 import { useRef, type MouseEvent } from 'react';
 import { usePreferences } from '../context/PreferencesContext';
-import { cvFiles } from '../data/cv';
+import { cvDownloadNames } from '../data/cv';
 
 export default function CvDownload() {
   const { ui } = usePreferences();
@@ -23,8 +23,8 @@ export default function CvDownload() {
       <dialog ref={dialog} className="cv-modal" aria-labelledby="cv-language-title" onClick={closeOnBackdrop} onClose={() => trigger.current?.focus()}>
         <p className="cv-modal__title" id="cv-language-title">{ui.chooseCvLanguage}</p>
         <div className="cv-modal__options">
-          <a className="button button--secondary" href="/cv/es.pdf" download={cvFiles.es} aria-label={ui.downloadSpanishCv} onClick={() => dialog.current?.close()}>[ES]</a>
-          <a className="button button--secondary" href="/cv/en.pdf" download={cvFiles.en} aria-label={ui.downloadEnglishCv} onClick={() => dialog.current?.close()}>[EN]</a>
+          <a className="button button--secondary" href="/cv/es.pdf" download={cvDownloadNames.es} aria-label={ui.downloadSpanishCv} onClick={() => dialog.current?.close()}>[ES]</a>
+          <a className="button button--secondary" href="/cv/en.pdf" download={cvDownloadNames.en} aria-label={ui.downloadEnglishCv} onClick={() => dialog.current?.close()}>[EN]</a>
         </div>
       </dialog>
     </>
